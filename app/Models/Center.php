@@ -67,7 +67,7 @@ class Center extends Model
             $activeEmployees = Timeline::whereNull('end_date')
                 ->join('employees', 'timelines.employee_id', '=', 'employees.id')
                 ->where('employees.is_active', 1)
-                ->orderBy('employees.first_name', 'asc')
+                ->orderBy('employees.name', 'asc')
                 ->with('employee')
                 ->get();
         } else {
@@ -75,21 +75,22 @@ class Center extends Model
                 ->whereNull('end_date')
                 ->join('employees', 'timelines.employee_id', '=', 'employees.id')
                 ->where('employees.is_active', 1)
-                ->orderBy('employees.first_name', 'asc')
+                ->orderBy('employees.name', 'asc')
                 ->with('employee')
                 ->get();
 
-            $notAffiliatedEmployees = Center::find(100)
+            $center100 = Center::find(100);
+            $notAffiliatedEmployees = $center100 ? $center100
                 ->timelines()
                 ->whereNull('end_date')
                 ->join('employees', 'timelines.employee_id', '=', 'employees.id')
                 ->where('employees.is_active', 1)
-                ->orderBy('employees.first_name', 'asc')
+                ->orderBy('employees.name', 'asc')
                 ->with('employee')
-                ->get();
+                ->get() : collect();
 
             $mergedEmployees = $centerEmployees->merge($notAffiliatedEmployees);
-            $mergedEmployees = $mergedEmployees->sortBy('employee.first_name');
+            $mergedEmployees = $mergedEmployees->sortBy('employee.name');
 
             $activeEmployees = $mergedEmployees;
         }

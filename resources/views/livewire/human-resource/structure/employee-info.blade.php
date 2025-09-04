@@ -38,6 +38,7 @@
 {{-- Alerts --}}
 @include('_partials/_alerts/alert-general')
 
+@if($employee)
 <div class="row">
   <div class="col-12">
     <div class="card mb-4">
@@ -46,32 +47,44 @@
       </div> --}}
       <div class="user-profile-header d-flex flex-column flex-sm-row text-sm-start text-center mb-4">
         <div class="flex-shrink-0 mt-n2 mx-sm-0 mx-auto">
-          <img src="{{ Storage::disk("public")->exists($employee->profile_photo_path) ? Storage::disk("public")->url($employee->profile_photo_path) : Storage::disk("public")->url('profile-photos/.default-photo.jpg') }}" class="d-block h-auto ms-0 ms-sm-4 rounded user-profile-img" width="100px">
+          <div class="d-block h-auto ms-0 ms-sm-4 rounded user-profile-img bg-label-primary d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+            <h2 class="text-white m-0">{{ substr($employee->name, 0, 2) }}</h2>
+          </div>
         </div>
         <div class="flex-grow-1 mt-3 mt-sm-5">
           <div class="d-flex align-items-md-end align-items-sm-start align-items-center justify-content-md-between justify-content-start mx-4 flex-md-row flex-column gap-4">
             <div class="user-profile-info">
-              <h4>{{ $employee->fullName }}</h4>
-              <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2">
-                <li class="list-inline-item">
-                  <span class="badge rounded-pill bg-label-primary"><i class="ti ti-id"></i> {{ $employee->id }}</span>
-                </li>
-                <li class="list-inline-item">
-                  <i class="ti ti-building-community"></i> {{ $employee->current_center }}
-                </li>
-                <li class="list-inline-item">
-                  <i class="ti ti-building"></i> {{ $employee->current_department }}
-                </li>
-                <li class="list-inline-item">
-                  <i class="ti ti-map-pin"></i> {{ $employee->current_position }}
-                </li>
-                <li class="list-inline-item">
-                  <i class="ti ti-rocket"></i> {{ $employee->join_at_short_form }}
-                </li>
-                <li class="list-inline-item">
-                  <i class="ti ti-player-track-next"></i> {{ __('Continuity') . ": " . $employee->worked_years . " " . __('years') }}
-                </li>
-              </ul>
+                             <h4>{{ $employee->name }}</h4>
+               <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2">
+                 <li class="list-inline-item">
+                   <span class="badge rounded-pill bg-label-primary"><i class="ti ti-id"></i> {{ $employee->id }}</span>
+                 </li>
+                 @if($employee->center)
+                 <li class="list-inline-item">
+                   <i class="ti ti-building-community"></i> {{ $employee->center->name }}
+                 </li>
+                 @endif
+                 @if($employee->department)
+                 <li class="list-inline-item">
+                   <i class="ti ti-building"></i> {{ $employee->department->name }}
+                 </li>
+                 @endif
+                 @if($employee->position)
+                 <li class="list-inline-item">
+                   <i class="ti ti-map-pin"></i> {{ $employee->position->name }}
+                 </li>
+                 @endif
+                 @if($employee->enlist_date)
+                 <li class="list-inline-item">
+                   <i class="ti ti-rocket"></i> {{ $employee->enlist_date->format('d/m/Y') }}
+                 </li>
+                 @endif
+                 @if($employee->start_date)
+                 <li class="list-inline-item">
+                   <i class="ti ti-player-track-next"></i> {{ __('Start Date') . ": " . $employee->start_date->format('d/m/Y') }}
+                 </li>
+                 @endif
+               </ul>
             </div>
             <button wire:click='toggleActive' type="button" class="btn @if ($employee->is_active == 1)  btn-success @else btn-danger  @endif waves-effect waves-light">
               <span class="ti @if ($employee->is_active == 1) ti-user-check @else ti-user-x @endif me-1"></span>
@@ -83,6 +96,19 @@
     </div>
   </div>
 </div>
+@else
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body text-center">
+        <h4>{{ __('Employee not found') }}</h4>
+        <p>{{ __('The employee you are looking for does not exist.') }}</p>
+        <a href="{{ route('structure-employees') }}" class="btn btn-primary">{{ __('Back to Employees') }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+@endif
 <!--/ Header -->
 
 <!-- Navbar pills -->
@@ -165,14 +191,24 @@
       <div class="card-body">
         <h5 class="card-action-title mb-0">{{ __('Details') }}</h5>
         <ul class="list-unstyled mb-4 mt-3">
-          <li class="d-flex align-items-center mb-3"><i class="ti ti-home"></i><span class="fw-bold mx-2">{{ __('Address') }}:</span> <span>{{ $employee->address }}</span></li>
+          <li class="d-flex align-items-center mb-3"><i class="ti ti-home"></i><span class="fw-bold mx-2">{{ __('Address') }}:</span> <span>{{ $employee->address ?: '-' }}</span></li>
         </ul>
         <ul class="list-unstyled mb-4 mt-3">
-          <li class="d-flex align-items-center mb-3"><i class="ti ti-phone-call"></i><span class="fw-bold mx-2">{{ __('Mobile') }}:</span> <span style="direction: ltr">{{ '+963 ' . number_format($employee->mobile_number, 0, '', ' ') }}</span></li>
+          <li class="d-flex align-items-center mb-3"><i class="ti ti-phone-call"></i><span class="fw-bold mx-2">{{ __('Phone') }}:</span> <span style="direction: ltr">{{ $employee->phone ?: '-' }}</span></li>
         </ul>
         <ul class="list-unstyled mb-4 mt-3">
-          <li class="d-flex align-items-center mb-3"><i class="ti ti-rocket"></i><span class="fw-bold mx-2">{{ __('Started') }}:</span> <span>{{ $employee->join_at }}</span></li>
+          <li class="d-flex align-items-center mb-3"><i class="ti ti-id"></i><span class="fw-bold mx-2">{{ __('CCCD') }}:</span> <span>{{ $employee->CCCD ?: '-' }}</span></li>
         </ul>
+        @if($employee->enlist_date)
+        <ul class="list-unstyled mb-4 mt-3">
+          <li class="d-flex align-items-center mb-3"><i class="ti ti-rocket"></i><span class="fw-bold mx-2">{{ __('Enlist Date') }}:</span> <span>{{ $employee->enlist_date->format('d/m/Y') }}</span></li>
+        </ul>
+        @endif
+        @if($employee->date_of_birth)
+        <ul class="list-unstyled mb-4 mt-3">
+          <li class="d-flex align-items-center mb-3"><i class="ti ti-calendar"></i><span class="fw-bold mx-2">{{ __('Date of Birth') }}:</span> <span>{{ $employee->date_of_birth->format('d/m/Y') }}</span></li>
+        </ul>
+        @endif
 
         <h5 class="card-action-title mb-0">{{ __('Counters') }}</h5>
         <ul class="list-unstyled mb-0 mt-3">
@@ -234,7 +270,7 @@
 </div>
 
 {{-- Modal --}}
-@include('_partials\_modals\modal-timeline')
+@include('_partials._modals.modal-timeline')
 
 {{-- Scripts --}}
 @push('custom-scripts')
@@ -246,4 +282,6 @@
     </script>
   @endif
 @endpush
+</div>
+
 </div>

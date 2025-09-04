@@ -44,24 +44,33 @@ class EmployeeInfo extends Component
     public function mount($id)
     {
         $this->employee = Employee::find($id);
-        $this->employeeAssets = $this->employee
-            ->transitions()
-            ->with('asset')
-            ->orderBy('handed_date', 'desc')
-            ->get();
-        // dd($this->employeeAssets);
+        
+        if ($this->employee) {
+            $this->employeeAssets = $this->employee
+                ->transitions()
+                ->with('asset')
+                ->orderBy('handed_date', 'desc')
+                ->get();
+        } else {
+            $this->employeeAssets = collect();
+        }
+        
         $this->centers = Center::all();
-        $this->departments = department::all();
+        $this->departments = Department::all();
         $this->positions = Position::all();
     }
 
     // 👉 Render
     public function render()
     {
-        $this->employeeTimelines = Timeline::with(['center', 'department', 'position'])
-            ->where('employee_id', $this->employee->id)
-            ->orderBy('id', 'desc')
-            ->get();
+        if ($this->employee) {
+            $this->employeeTimelines = Timeline::with(['center', 'department', 'position'])
+                ->where('employee_id', $this->employee->id)
+                ->orderBy('id', 'desc')
+                ->get();
+        } else {
+            $this->employeeTimelines = collect();
+        }
 
         return view('livewire.human-resource.structure.employee-info');
     }
@@ -69,6 +78,10 @@ class EmployeeInfo extends Component
     // 👉 Toggle active status
     public function toggleActive()
     {
+        if (!$this->employee) {
+            return;
+        }
+
         $presentTimeline = $this->employee
             ->timelines()
             ->orderBy('timelines.id', 'desc')
@@ -76,14 +89,19 @@ class EmployeeInfo extends Component
 
         if ($this->employee->is_active == true) {
             $this->employee->is_active = false;
-            $presentTimeline->end_date = Carbon::now();
+            if ($presentTimeline) {
+                $presentTimeline->end_date = Carbon::now();
+                $presentTimeline->save();
+            }
         } else {
             $this->employee->is_active = true;
-            $presentTimeline->end_date = null;
+            if ($presentTimeline) {
+                $presentTimeline->end_date = null;
+                $presentTimeline->save();
+            }
         }
 
         $this->employee->save();
-        $presentTimeline->save();
 
         $this->dispatch('toastr', type: 'success' /* , title: 'Done!' */, message: __('Going Well!'));
     }

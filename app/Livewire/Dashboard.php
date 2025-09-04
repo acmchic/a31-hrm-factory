@@ -58,16 +58,28 @@ class Dashboard extends Component
     public function mount()
     {
         $user = Employee::find(Auth::user()->employee_id);
-        $center = Center::find(
-            $user
-                ->timelines()
-                ->where('end_date', null)
-                ->first()->center_id
-        );
-        $this->activeEmployees = $center->activeEmployees();
+        
+        if ($user) {
+            $currentTimeline = $user->timelines()->where('end_date', null)->first();
+            
+            if ($currentTimeline && $currentTimeline->center_id) {
+                $center = Center::find($currentTimeline->center_id);
+                if ($center) {
+                    $this->activeEmployees = $center->activeEmployees();
+                } else {
+                    $this->activeEmployees = collect();
+                }
+            } else {
+                $this->activeEmployees = collect();
+            }
 
-        $this->selectedEmployeeId = Auth::user()->employee_id;
-        $this->employeePhoto = $user->profile_photo_path;
+            $this->selectedEmployeeId = Auth::user()->employee_id;
+            $this->employeePhoto = $user->profile_photo_path ?: 'profile-photos/.default-photo.jpg';
+        } else {
+            $this->activeEmployees = collect();
+            $this->selectedEmployeeId = null;
+            $this->employeePhoto = 'profile-photos/.default-photo.jpg';
+        }
 
         $this->leaveTypes = Leave::all();
 
@@ -103,18 +115,23 @@ class Dashboard extends Component
 
     public function updatedSelectedEmployeeId()
     {
+        if (!$this->selectedEmployeeId) {
+            $this->employeePhoto = 'profile-photos/.default-photo.jpg';
+            return;
+        }
+
         $employee = Employee::find($this->selectedEmployeeId);
 
         if ($employee) {
-            $this->employeePhoto = $employee->profile_photo_path;
+            $this->employeePhoto = $employee->profile_photo_path ?: 'profile-photos/.default-photo.jpg';
         } else {
-            $this->reset('employeePhoto');
+            $this->employeePhoto = 'profile-photos/.default-photo.jpg';
         }
     }
 
     public function sendPendingMessages()
     {
-        if ($this->messagesStatus['unsent'] != 0) {
+        if (isset($this->messagesStatus['unsent']) && $this->messagesStatus['unsent'] != 0) {
             sendPendingMessages::dispatch();
             session()->flash('info', __('Let\'s go! Personal on their way!'));
         } else {
@@ -126,10 +143,16 @@ class Dashboard extends Component
     {
         $this->dispatch('clearSelect2Values');
         $this->reset('newLeaveInfo', 'isEdit');
+        
+        // Always set to current user ID
+        $this->selectedEmployeeId = Auth::user()->id;
     }
 
     public function createLeave()
     {
+        // Ensure selectedEmployeeId is always set to current user ID
+        $this->selectedEmployeeId = Auth::user()->id;
+
         EmployeeLeave::firstOrCreate([
             'employee_id' => $this->selectedEmployeeId,
             'leave_id' => $this->newLeaveInfo['LeaveId'],

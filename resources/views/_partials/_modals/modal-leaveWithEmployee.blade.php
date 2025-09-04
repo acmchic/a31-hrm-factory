@@ -30,16 +30,19 @@
             </div>
             @endif
             <div class="row mb-4">
-              <div wire:ignore class="col-lg-6 col-12">
+              <div class="col-lg-6 col-12">
                 <label class="form-label">{{ __('Employee') }}</label>
-                <select wire:model='selectedEmployeeId' class="select2 form-control" id="select2selectedEmployeeId">
-                  <option value=""></option>
-                  @forelse ($activeEmployees as $timeline)
-                    <option value="{{ $timeline->employee->id }}">{{ $timeline->employee->id . ' - ' . $timeline->employee->full_name }}</option>
-                  @empty
-                    <option value="0" disabled>{{__('No Employees Found!') }}</option>
-                  @endforelse
-                </select>
+                <div class="alert alert-info d-flex align-items-center">
+                  <div class="avatar avatar-sm me-3">
+                    <span class="avatar-initial rounded-circle bg-label-primary">
+                      {{ substr(auth()->user()->name, 0, 2) }}
+                    </span>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">{{ auth()->user()->name }}</h6>
+                    <small class="text-muted">ID: {{ auth()->user()->id }}</small>
+                  </div>
+                </div>
               </div>
               <div wire:ignore class="col-lg-6 col-12">
                 <label class="form-label w-100">{{ __('Type') }}</label>

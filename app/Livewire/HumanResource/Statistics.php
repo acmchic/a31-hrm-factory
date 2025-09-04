@@ -51,7 +51,7 @@ class Statistics extends Component
                     })
                     ->count();
             })
-            ->sortBy('first_name')
+            ->sortBy('name')
             ->sortByDesc('cash_discounts_count');
     }
 

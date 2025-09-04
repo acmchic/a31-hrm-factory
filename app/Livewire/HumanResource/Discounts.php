@@ -92,6 +92,6 @@ class Discounts extends Component
                     })
                     ->count();
             })
-            ->sortBy('first_name');
+            ->sortBy('name');
     }
 }

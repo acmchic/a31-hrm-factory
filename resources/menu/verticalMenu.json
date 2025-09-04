@@ -9,13 +9,13 @@
     },
     {
       "menuHeader": "Human resource",
-      "role": ["HR", "CC"]
+      "role": ["HR", "CC", "AM"]
     },
     {
       "name": "Attendance",
       "icon": "menu-icon tf-icons ti ti-door-exit",
       "slug": "attendance",
-      "role": ["HR", "CC"],
+      "role": ["HR", "CC", "AM"],
       "submenu": [
         {
           "url": "attendance/fingerprints",
@@ -27,7 +27,7 @@
           "url": "attendance/leaves",
           "name": "Leaves",
           "slug": "attendance-leaves",
-          "role": ["HR", "CC"]
+          "role": ["Admin", "HR", "CC", "AM"]
         }
       ]
     },
@@ -132,31 +132,6 @@
           "target": "_blank"
         }
       ]
-    },
-    {
-      "menuHeader": "Assets",
-      "role": ["AM", "HR"]
-    },
-    {
-      "url": "/assets/inventory",
-      "name": "Inventory",
-      "icon": "menu-icon tf-icons ti ti-barcode",
-      "slug": "products",
-      "role": ["AM"]
-    },
-    {
-      "url": "/assets/categories",
-      "name": "Categories",
-      "icon": "menu-icon tf-icons ti ti-category",
-      "slug": "categories",
-      "role": ["AM"]
-    },
-    {
-      "url": "/assets/reports",
-      "name": "Reports",
-      "icon": "menu-icon tf-icons ti ti-file-analytics",
-      "slug": "reports",
-      "role": ["AM", "HR"]
     }
   ]
 }

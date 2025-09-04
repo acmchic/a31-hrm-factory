@@ -24,6 +24,15 @@ class EmployeeLeave extends Model
         'note',
         'is_authorized',
         'is_checked',
+        'status',
+        'approved_by',
+        'approved_at',
+        'rejection_reason',
+        'digital_signature',
+        'signature_certificate',
+        'workflow_status',
+        'reviewer_id',
+        'reviewed_at',
     ];
 
     protected $hidden = [
@@ -32,4 +41,70 @@ class EmployeeLeave extends Model
         'deleted_by',
         'deleted_at',
     ];
+
+    protected $casts = [
+        'from_date' => 'date',
+        'to_date' => 'date',
+        'approved_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+    ];
+
+    // Relationships
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function leave()
+    {
+        return $this->belongsTo(Leave::class);
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
+    }
+
+    // Accessors
+    public function getStatusTextAttribute()
+    {
+        return match($this->status) {
+            'pending' => 'Chờ phê duyệt',
+            'approved' => 'Đã phê duyệt',
+            'rejected' => 'Bị từ chối',
+            default => 'Không xác định'
+        };
+    }
+
+    public function getWorkflowStatusTextAttribute()
+    {
+        return match($this->workflow_status) {
+            'draft' => 'Bản nháp',
+            'submitted' => 'Đã gửi',
+            'under_review' => 'Đang xem xét',
+            'approved' => 'Đã phê duyệt',
+            'rejected' => 'Bị từ chối',
+            default => 'Không xác định'
+        };
+    }
+
+    public function getIsPendingAttribute()
+    {
+        return $this->status === 'pending';
+    }
+
+    public function getIsApprovedAttribute()
+    {
+        return $this->status === 'approved';
+    }
+
+    public function getIsRejectedAttribute()
+    {
+        return $this->status === 'rejected';
+    }
 }

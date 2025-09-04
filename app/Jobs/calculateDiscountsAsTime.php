@@ -76,6 +76,8 @@ class calculateDiscountsAsTime implements ShouldQueue
             $centerEmployees = $this->getCenterEmployees($center->id);
 
             foreach ($centerEmployees as $employee) {
+                if (!$employee) continue;
+                
                 $employeeContract = $employee->contract()->first();
                 $employeeLeaves = $employee->leaves()->where('to_date', '>=', $fromDate)->where('is_checked', 0)->get();
                 $employeeFingerprints = $this->getEmployeeFingerprints($workDays, $employee);
@@ -224,7 +226,7 @@ class calculateDiscountsAsTime implements ShouldQueue
             $employee->cash_discounts_count = $employee->discounts->filter(function ($discount) {
                 return $discount->rate > 0;
             })->count();
-        })->sortBy('first_name');
+        })->sortBy('name');
     }
 
     public function calculateWorkDays($center, $fromDate, $toDate)

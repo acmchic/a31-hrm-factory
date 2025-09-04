@@ -19,32 +19,45 @@ class Employee extends Model
     use CreatedUpdatedDeletedBy, HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'id',
-        'contract_id',
-        'first_name',
-        'father_name',
-        'last_name',
-        'mother_name',
-        'birth_and_place',
-        'national_number',
-        'mobile_number',
-        'degree',
+        'user_id',
+        'name',
+        'date_of_birth',
+        'enlist_date',
+        'rank_code',
+        'position_id',
+        'department_id',
+        'center_id',
+        'start_date',
+        'quit_date',
+        'CCCD',
+        'phone',
         'gender',
         'address',
-        'notes',
-        'balance_leave_allowed',
+        'is_active',
+        'contract_id',
         'max_leave_allowed',
         'delay_counter',
         'hourly_counter',
-        'is_active',
         'profile_photo_path',
+        'created_by',
+        'updated_by'
     ];
 
-    // 👉 Links
-    public function user(): HasOne
-    {
-        return $this->hasOne(User::class);
-    }
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'enlist_date' => 'date',
+        'start_date' => 'date',
+        'quit_date' => 'date',
+        'is_active' => 'boolean',
+        'max_leave_allowed' => 'integer',
+        'gender' => 'integer',
+    ];
+
+    // 👉 Links - Commented out since employee_id field was removed from users table
+    // public function user(): HasOne
+    // {
+    //     return $this->hasOne(User::class);
+    // }
 
     public function fingerprints(): HasMany
     {
@@ -54,6 +67,21 @@ class Employee extends Model
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function center(): BelongsTo
+    {
+        return $this->belongsTo(Center::class);
     }
 
     public function discounts(): HasMany
@@ -86,6 +114,11 @@ class Employee extends Model
         );
     }
 
+    public function employeeLeaves(): HasMany
+    {
+        return $this->hasMany(EmployeeLeave::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
@@ -109,12 +142,12 @@ class Employee extends Model
 
     public function getFullNameAttribute()
     {
-        return $this->first_name.' '.$this->father_name.' '.$this->last_name;
+        return $this->name;
     }
 
     public function getShortNameAttribute()
     {
-        return $this->first_name.' '.$this->last_name;
+        return $this->name;
     }
 
     // 👉 Scopes

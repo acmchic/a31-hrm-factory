@@ -38,37 +38,72 @@
   </div>
   <div class="table-responsive text-nowrap">
     <table class="table">
-      <thead>
-        <tr>
-          <th class="col-1">{{ __('ID') }}</th>
-          <th class="col-5">{{ __('Name') }}</th>
-          <th class="col-2">{{ __('Mobile') }}</th>
-          <th class="col-2">{{ __('Status') }}</th>
-          <th class="col-2">{{ __('Actions') }}</th>
-        </tr>
-      </thead>
-      <tbody class="table-border-bottom-0">
-        @forelse($employees as $employee)
-        <tr>
-          <td>{{ $employee->id }}</td>
-          <td>
-            <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
-              <li class="avatar avatar-xs pull-up">
-                <a href="{{ route('structure-employees-info', $employee->id) }}">
-                  <img src="{{ Storage::disk("public")->url($employee->profile_photo_path) }}" alt="Avatar" class="rounded-circle">
-                  {{ $employee->full_name }}
-                </a>
-              </li>
-            </ul>
-          </td>
-          <td style="direction: ltr">{{ '+963 ' . number_format($employee->mobile_number, 0, '', ' ') }}</td>
-          <td>
-            @if ($employee->is_active)
-              <span class="badge bg-label-success me-1">{{ __('Active') }}</span>
-            @else
-              <span class="badge bg-label-danger me-1">{{ __('Out of work') }}</span>
-            @endif
-          </td>
+             <thead>
+         <tr>
+           <th class="col-4">{{ __('Họ và tên') }}</th>
+           <th class="col-2">{{ __('Phòng ban') }}</th>
+           <th class="col-2">{{ __('Chức vụ') }}</th>
+           <th class="col-2">{{ __('Cấp bậc') }}</th>
+           <th class="col-2">{{ __('Actions') }}</th>
+         </tr>
+       </thead>
+       <tbody class="table-border-bottom-0">
+         @forelse($employees as $employee)
+         <tr>
+           <td>
+             <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
+               <li class="avatar avatar-xs pull-up">
+                 <a href="{{ route('structure-employees-info', $employee->id) }}">
+                   {{ $employee->name }}
+                 </a>
+               </li>
+             </ul>
+           </td>
+           <td>
+             @if($employee->department)
+               <a href="{{ route('structure-departments-show', $employee->department->id) }}" class="badge bg-label-info text-decoration-none">
+                 {{ $employee->department->name }}
+               </a>
+             @else
+               <span class="text-muted">-</span>
+             @endif
+           </td>
+           <td>
+             @if($employee->position)
+               @php
+                 $positionName = strtolower($employee->position->name);
+                 $badgeClass = 'bg-label-secondary'; // Mặc định
+                 
+                 if (strpos($positionName, 'giám đốc') !== false && strpos($positionName, 'phó') === false) {
+                     $badgeClass = 'bg-label-danger'; // Đỏ - Giám đốc, Chính ủy
+                 } elseif (strpos($positionName, 'phó giám đốc') !== false) {
+                     $badgeClass = 'bg-label-warning'; // Vàng - Phó Giám đốc
+                 } elseif (strpos($positionName, 'trưởng phòng') !== false) {
+                     $badgeClass = 'bg-label-primary'; // Xanh dương - Trưởng phòng
+                 }
+               @endphp
+               <span class="badge {{ $badgeClass }}">{{ $employee->position->name }}</span>
+             @else
+               <span class="text-muted">-</span>
+             @endif
+           </td>
+           <td>
+             @if($employee->rank_code)
+               @php
+                 $rankCode = $employee->rank_code;
+                 $badgeClass = 'bg-label-secondary'; // Mặc định
+                 
+                 if (strpos($rankCode, '//') !== false) {
+                     $badgeClass = 'bg-label-danger'; // Đỏ - Cấp tá
+                 } elseif (strpos($rankCode, '/') !== false && strpos($rankCode, '//') === false) {
+                     $badgeClass = 'bg-label-warning'; // Vàng - Cấp uy
+                 }
+               @endphp
+               <span class="badge {{ $badgeClass }}">{{ $employee->rank_code }}</span>
+             @else
+               <span class="text-muted">-</span>
+             @endif
+           </td>
           <td>
             <button type="button" class="btn btn-sm btn-tr rounded-pill btn-icon btn-outline-secondary waves-effect">
               <span wire:click='showEditEmployeeModal({{ $employee }})' data-bs-toggle="modal" data-bs-target="#employeeModal" class="ti ti-pencil"></span>

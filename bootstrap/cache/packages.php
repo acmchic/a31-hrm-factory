@@ -67,6 +67,13 @@
       'Livewire' => 'Livewire\\Livewire',
     ),
   ),
+  'lsnepomuceno/laravel-a1-pdf-sign' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'LSNepomuceno\\LaravelA1PdfSign\\LaravelA1PdfSignServiceProvider',
+    ),
+  ),
   'maatwebsite/excel' => 
   array (
     'providers' => 

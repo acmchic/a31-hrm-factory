@@ -55,7 +55,7 @@
         <div class="card-header pb-0">
           <div class="d-flex justify-content-between">
             <div class="card-title mb-0">
-              <h4 class="card-title mb-1">{{ __('Hi,') }} {{ Employee::find(Auth::user()->employee_id)->first_name }}! 👋</h4>
+                              <h4 class="card-title mb-1">{{ __('Hi,') }} {{ Auth::user() && Auth::user()->employee_id ? (Employee::find(Auth::user()->employee_id)->name ?? 'User') : 'User' }}! 👋</h4>
               <small class="text-muted">{{ __('Start your day with a smile') }}</small>
             </div>
           </div>

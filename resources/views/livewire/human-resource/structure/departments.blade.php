@@ -30,7 +30,11 @@
         @forelse($departments as $department)
         <tr>
           <td>{{ $department->id }}</td>
-          <td><strong>{{ $department->name }}</strong></td>
+          <td>
+            <a href="{{ route('structure-departments-show', $department->id) }}" class="text-decoration-none">
+              <strong>{{ $department->name }}</strong>
+            </a>
+          </td>
           {{-- <td>
             <ul class="list-unstyled users-list m-0 avatar-group d-flex align-items-center">
               <li class="avatar avatar-xs pull-up"> Name 2

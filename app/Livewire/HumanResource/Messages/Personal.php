@@ -63,10 +63,14 @@ class Personal extends Component
         ];
 
         $this->employees = Employee::where('id', 'like', '%'.$this->searchTerm.'%')
-            ->orWhere('first_name', 'like', '%'.$this->searchTerm.'%')
-            ->orWhere('last_name', 'like', '%'.$this->searchTerm.'%')
+            ->orWhere('name', 'like', '%'.$this->searchTerm.'%')
             ->get();
-        $this->messages = Message::where('employee_id', $this->selectedEmployee->id)->get();
+            
+        if ($this->selectedEmployee) {
+            $this->messages = Message::where('employee_id', $this->selectedEmployee->id)->get();
+        } else {
+            $this->messages = collect();
+        }
 
         $this->dispatch('initialize');
 

@@ -27,7 +27,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
-        'employee_id',
+        'username',
         'mobile',
         'mobile_verified_at',
         'email',
@@ -44,19 +44,15 @@ class User extends Authenticatable
 
     protected $appends = ['profile_photo_url'];
 
-    // 👉 Links
-    public function employee(): BelongsTo
-    {
-        return $this->belongsTo(Employee::class);
-    }
+    // 👉 Links - Commented out since employee_id field was removed
+    // public function employee(): BelongsTo
+    // {
+    //     return $this->belongsTo(Employee::class);
+    // }
 
     // 👉 Attributes
     public function getEmployeeFullNameAttribute()
     {
-        if ($this->employee) {
-            return $this->employee->first_name.' '.$this->employee->last_name;
-        }
-
-        return '';
+        return $this->name;
     }
 }

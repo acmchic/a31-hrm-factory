@@ -12,7 +12,15 @@ class Leave extends Model
 {
     use CreatedUpdatedDeletedBy, HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'discount_rate', 'notes'];
+    protected $fillable = [
+        'name', 
+        'is_instantly', 
+        'is_accumulative', 
+        'discount_rate', 
+        'days_limit', 
+        'minutes_limit', 
+        'notes'
+    ];
 
     // 👉 Links
     public function employees(): BelongsToMany

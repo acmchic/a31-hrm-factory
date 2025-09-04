@@ -49,8 +49,8 @@ $configData = Helper::appClasses();
         <form id="formAuthentication" class="mb-3" action="{{ route('login') }}" method="POST">
           @csrf
           <div class="mb-3">
-            <label for="login-email" class="form-label">{{ __('Email') }}</label>
-            <input type="text" class="form-control @error('email') is-invalid @enderror" id="login-email" name="email" placeholder="example@namaa.sy" autofocus value="{{ old('email') }}">
+            <label for="login-username" class="form-label">{{ __('Username') }}</label>
+            <input type="text" class="form-control @error('email') is-invalid @enderror" id="login-username" name="email" placeholder="ndlinh (chỉ cần username, không cần @quandoi.local)" autofocus value="{{ old('email') }}">
             @error('email')
             <span class="invalid-feedback" role="alert">
               <span class="fw-medium">{{ $message }}</span>

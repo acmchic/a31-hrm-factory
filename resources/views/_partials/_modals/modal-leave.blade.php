@@ -24,36 +24,45 @@
               </ul>
             </div>
             @endif
-            <div wire:ignore class="col-12">
+            <div class="col-12">
+              <label class="form-label w-100">{{ __('Employee') }}</label>
+              <div class="alert alert-info d-flex align-items-center">
+                <div class="avatar avatar-sm me-3">
+                  <span class="avatar-initial rounded-circle bg-label-primary">
+                    {{ substr(auth()->user()->name, 0, 2) }}
+                  </span>
+                </div>
+                <div>
+                  <h6 class="mb-0">{{ auth()->user()->name }}</h6>
+                  <small class="text-muted">ID: {{ auth()->user()->id }}</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
               <label class="form-label w-100">{{ __('Type') }}</label>
-              <select wire:model='newLeaveInfo.LeaveId' name="updated_name" class="select2 form-control" id="select2LeaveId">
-                <option value=""></option>
-                @forelse ($leaveTypes as $leaveType)
-                  <option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>
-                @empty
-                  <option value="0" disabled>{{ __('No Leave Found!') }}</option>
-                @endforelse
+              <select wire:model='newLeaveInfo.LeaveId' class="form-control @error('newLeaveInfo.LeaveId') is-invalid @enderror">
+                <option value="">{{ __('Select leave type') }}</option>
+                @if(isset($leaveTypes))
+                  @foreach($leaveTypes as $leaveType)
+                    <option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>
+                  @endforeach
+                @else
+                  <option value="1">Nghỉ Ốm</option>
+                  <option value="2">Nghỉ Việc cá nhân</option>
+                @endif
               </select>
             </div>
-            <div class="col-md-3 col-12">
+            <div class="col-md-6 col-12">
               <label class="form-label">{{ __('From Date') }}</label>
-              <input  wire:model='newLeaveInfo.fromDate' type="text" class="form-control flatpickr-input active  @error('newLeaveInfo.fromDate') is-invalid @enderror" id="flatpickr-date-from" readonly="readonly">
+              <input wire:model='newLeaveInfo.fromDate' type="text" class="form-control flatpickr-input active @error('newLeaveInfo.fromDate') is-invalid @enderror" id="flatpickr-date-from" readonly="readonly">
             </div>
-            <div class="col-md-3 col-12">
+            <div class="col-md-6 col-12">
               <label class="form-label w-100">{{ __('To Date') }}</label>
-              <input wire:model='newLeaveInfo.toDate'  class="form-control flatpickr-input active @error('newLeaveInfo.toDate') is-invalid @enderror" type="text" id="flatpickr-date-to" readonly="readonly" />
+              <input wire:model='newLeaveInfo.toDate' type="text" class="form-control flatpickr-input active @error('newLeaveInfo.toDate') is-invalid @enderror" id="flatpickr-date-to" readonly="readonly" />
             </div>
-            <div class="col-md-3 col-12">
-              <label class="form-label w-100">{{ __('Start At') }}</label>
-              <input wire:model='newLeaveInfo.startAt' class="form-control @error('newLeaveInfo.startAt') is-invalid @enderror" type="text" id="startAt" autocomplete="off" />
-            </div>
-            <div class="col-md-3 col-12">
-              <label class="form-label w-100">{{ __('End At') }}</label>
-              <input wire:model='newLeaveInfo.endAt' class="form-control @error('newLeaveInfo.endAt') is-invalid @enderror" type="text" id="endAt" autocomplete="off" />
-            </div>
-            <div class="col-12 mb-4">
-              <label class="form-label w-100">{{ __('Note') }}</label>
-              <input wire:model='newLeaveInfo.note' class="form-control" type="text" autocomplete="off" />
+            <div class="col-12">
+              <label class="form-label w-100">{{ __('Note') }} <small class="text-muted">({{ __('Optional') }})</small></label>
+              <textarea wire:model='newLeaveInfo.note' class="form-control" rows="3" placeholder="{{ __('Enter note here...') }}"></textarea>
             </div>
             <div class="col-12 text-center">
               <button type="submit" class="btn btn-primary me-sm-3 me-1">{{ __('Submit') }}</button>
@@ -66,7 +75,6 @@
   </div>
 
   @push('custom-scripts')
-    <script src="{{asset('assets/vendor/libs/select2/select2.js')}}"></script>
     <script src="{{ asset('assets/vendor/libs/flatpickr/flatpickr.js') }}"></script>
 
     <script>
@@ -75,6 +83,10 @@
         if (typeof flatpickrDateFrom != undefined) {
           flatpickrDateFrom.flatpickr({
             dateFormat: "Y-m-d",
+            locale: "vi",
+            allowInput: true,
+            clickOpens: true,
+            theme: "light"
           });
         }
       });
@@ -86,76 +98,13 @@
         if (typeof flatpickrDateTo != undefined) {
           flatpickrDateTo.flatpickr({
             dateFormat: "Y-m-d",
-          });
-        }
-      });
-    </script>
-
-    <script>
-      $(document).ready(function () {
-        const checkIn = document.querySelector('#startAt');
-        if (startAt) {
-          startAt.flatpickr({
+            locale: "vi",
             allowInput: true,
-            enableTime: true,
-            noCalendar: true,
-            time_24hr: true,
-            defaultHour: 9,
-            minuteIncrement:1,
-            minTime: "9:00",
-            maxTime: "15:30"
-          });
-        }
-
-        const checkOut = document.querySelector('#endAt');
-        if (endAt) {
-          endAt.flatpickr({
-            allowInput: true,
-            enableTime: true,
-            noCalendar: true,
-            time_24hr: true,
-            defaultHour: 15,
-            defaultMinute: 30,
-            minuteIncrement:1,
-            minTime: "9:00",
-            maxTime: "15:30"
+            clickOpens: true,
+            theme: "light"
           });
         }
       });
-    </script>
-
-    <script>
-      'use strict';
-
-      $(function () {
-        const select2LeaveId = $('#select2LeaveId');
-
-        if (select2LeaveId.length) {
-          select2LeaveId.each(function () {
-            var $this = $(this);
-            $this.wrap('<div class="position-relative"></div>').select2({
-              placeholder: "{{ __('Search...') }}",
-              dropdownParent: $this.parent()
-            });
-          });
-        }
-
-        $('#select2LeaveId').on('change', function (e) {
-          var data = $('#select2LeaveId').select2("val");
-          @this.set('newLeaveInfo.LeaveId', data);
-        });
-      });
-    </script>
-
-    <script>
-      'use strict';
-
-      window.addEventListener('setSelect2Values', event => {
-        $(function () {
-          $("#select2selectedEmployeeId").val(event.detail.employeeId).trigger('change');
-          $("#select2LeaveId").val(event.detail.leaveId).trigger('change');
-        });
-      })
     </script>
 
     <script>
@@ -163,11 +112,11 @@
 
       window.addEventListener('clearSelect2Values', event => {
         $(function () {
-          // $('#select2selectedEmployeeId').select2('val', '0')
-          $('#select2LeaveId').select2('val', '0')
+          // Reset form values
+          $('#flatpickr-date-from').val('');
+          $('#flatpickr-date-to').val('');
         });
       })
     </script>
-
   @endpush
 </div>

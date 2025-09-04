@@ -332,7 +332,7 @@ class calculateDiscountsAsDays implements ShouldQueue
                     })
                     ->count();
             })
-            ->sortBy('first_name');
+            ->sortBy('name');
     }
 
     public function calculateWorkDays($center, $fromDate, $toDate)
