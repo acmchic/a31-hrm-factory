@@ -7,10 +7,7 @@
           © <script>
             document.write(new Date().getFullYear())
           </script>
-          , {{ __('made with') }} ❤️ <a href="{{ route('contact-us') }}" target="_blank" class="fw-semibold">{{ __('IT Department') }}</a> {{ __('for a better work environment.') }}
-        </div>
-        <div>
-          <a href="https://data.namaa.sy/" target="_blank" class="footer-link d-none d-sm-inline-block">{{ __('Data system') }}</a>
+          Nhà Máy A31 - Quân Chủng PK-KQ
         </div>
       </div>
     </div>

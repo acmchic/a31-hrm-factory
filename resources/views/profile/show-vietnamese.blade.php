@@ -7,6 +7,7 @@ $breadcrumbs = [['link' => 'home', 'name' => 'Trang chủ'], ['link' => 'javascr
 @section('title', 'Hồ sơ cá nhân')
 
 @push('custom-css')
+<link rel="stylesheet" href="{{asset('assets/vendor/libs/flatpickr/flatpickr.css')}}"/>
 <style>
   .profile-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -171,17 +172,6 @@ $breadcrumbs = [['link' => 'home', 'name' => 'Trang chủ'], ['link' => 'javascr
     </div>
   @endif
 
-  {{-- Browser Sessions --}}
-  <div class="profile-card card">
-    <div class="card-header">
-      <h5 class="card-title mb-0">
-        <i class="ti ti-devices me-2"></i>Phiên đăng nhập
-      </h5>
-    </div>
-    <div class="card-body">
-      @livewire('profile.logout-other-browser-sessions-form')
-    </div>
-  </div>
 
   {{-- Delete Account --}}
   @if (Laravel\Jetstream\Jetstream::hasAccountDeletionFeatures())
@@ -198,3 +188,43 @@ $breadcrumbs = [['link' => 'home', 'name' => 'Trang chủ'], ['link' => 'javascr
   @endif
 </div>
 @endsection
+
+@push('custom-scripts')
+<script src="{{ asset('assets/vendor/libs/flatpickr/flatpickr.js') }}"></script>
+
+<script>
+  $(document).ready(function () {
+    // Birth Date Picker
+    const flatpickrBirthDate = document.querySelector('#flatpickr-birth-date');
+    if (typeof flatpickrBirthDate != undefined && flatpickrBirthDate) {
+      flatpickrBirthDate.flatpickr({
+        dateFormat: "Y-m-d",
+        locale: "vi",
+        allowInput: true,
+        clickOpens: true,
+        theme: "light",
+        maxDate: "today"
+      });
+    }
+
+    // Enlist Date Picker
+    const flatpickrEnlistDate = document.querySelector('#flatpickr-enlist-date');
+    if (typeof flatpickrEnlistDate != undefined && flatpickrEnlistDate) {
+      flatpickrEnlistDate.flatpickr({
+        dateFormat: "Y-m-d",
+        locale: "vi",
+        allowInput: true,
+        clickOpens: true,
+        theme: "light"
+      });
+    }
+
+    // Livewire hooks
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('profile-updated', (event) => {
+            window.location.reload();
+        });
+    });
+  });
+</script>
+@endpush

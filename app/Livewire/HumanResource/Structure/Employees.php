@@ -52,7 +52,7 @@ class Employees extends Component
     // 👉 Render
     public function render()
     {
-        $employees = Employee::with(['user', 'position', 'department', 'center'])
+        $employees = Employee::with(['position', 'department', 'center'])
             ->where(function($query) {
                 $query->where('id', 'like', '%'.$this->searchTerm.'%')
                     ->orWhere('name', 'like', '%'.$this->searchTerm.'%')

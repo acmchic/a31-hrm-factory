@@ -139,13 +139,13 @@
                             <i class="ti ti-x me-1"></i>{{ __('Từ chối') }}
                           </a>
                         @endif
-                        
+
                         @if($leaveRequest->status === 'approved' && $leaveRequest->digital_signature)
                           <a wire:click.prevent="exportSignedPDF({{ $leaveRequest->id }})" class="dropdown-item" href="#">
                             <i class="ti ti-download me-1"></i>{{ __('Xuất PDF đã ký') }}
                           </a>
                         @endif
-                        
+
                         @if($leaveRequest->status === 'pending')
                           <a wire:click.prevent="showEditLeaveModal({{ $leaveRequest->id }})" class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#leaveModal">
                             <i class="ti ti-pencil me-1"></i>{{ __('Sửa') }}
@@ -154,7 +154,7 @@
                             <i class="ti ti-trash me-1"></i>{{ __('Xóa') }}
                           </a>
                         @endif
-                        
+
                         @if($confirmedId === $leaveRequest->id)
                           <button wire:click.prevent="deleteLeave({{ $leaveRequest->id }})" type="button" class="btn btn-sm btn-danger">
                             {{ __('Xác nhận xóa?') }}
@@ -169,7 +169,6 @@
                   <td colspan="7">
                     <div class="text-center py-4">
                       <h4 class="mb-2">{{ __('Không có đơn nghỉ phép nào') }}</h4>
-                      <p class="text-muted">{{ __('Hãy tạo đơn nghỉ phép đầu tiên!') }}</p>
                     </div>
                   </td>
                 </tr>

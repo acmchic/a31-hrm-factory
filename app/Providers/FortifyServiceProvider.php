@@ -35,25 +35,13 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
-        // Custom authentication logic
+        // Custom authentication logic using username
         Fortify::authenticateUsing(function (Request $request) {
-            $login = $request->input('email'); // The field is named 'email' in the form but contains username
+            $username = $request->input('username'); // Now using username field
             $password = $request->input('password');
 
-            $user = null;
-            
-            // If input contains @, search by email directly
-            if (str_contains($login, '@')) {
-                $user = User::where('email', $login)->first();
-            } else {
-                // If input doesn't contain @, try finding by email that starts with username@
-                $user = User::where('email', 'LIKE', $login . '@%')->first();
-                
-                // If still not found, try adding @quandoi.local
-                if (!$user) {
-                    $user = User::where('email', $login . '@quandoi.local')->first();
-                }
-            }
+            // Find user by username
+            $user = User::where('username', $username)->first();
 
             if ($user && Hash::check($password, $user->password)) {
                 return $user;

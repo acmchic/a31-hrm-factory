@@ -26,7 +26,7 @@
 
     <ul class="menu-inner py-1">
       @foreach ($menuData->menu as $menu)
-        @if ($role === 'Admin' || isset($menu->role) && in_array($role, $menu->role))
+        @if ($role === 'Admin' || $role === 'Super Admin' || $role === 'HR' || $role === 'CC' || $role === 'AM' || $role === 'CR' || isset($menu->role) && in_array($role, $menu->role))
           {{-- adding active and open class if child is active --}}
 
           {{-- menu headers --}}

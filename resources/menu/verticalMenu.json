@@ -28,6 +28,12 @@
           "name": "Leaves",
           "slug": "attendance-leaves",
           "role": ["Admin", "HR", "CC", "AM"]
+        },
+        {
+          "url": "/vehicles/registration",
+          "name": "Đăng ký xe",
+          "slug": "vehicle-registration",
+          "role": ["Admin", "HR", "CC", "AM"]
         }
       ]
     },

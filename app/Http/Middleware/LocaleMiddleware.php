@@ -27,12 +27,8 @@ class LocaleMiddleware
                 $request->merge($input);
             }
             
-            // Locale is enabled and allowed to be change
-            if (session()->has('locale') && in_array(session()->get('locale'), ['ar', 'en'])) {
-                app()->setLocale(session()->get('locale'));
-            } else {
-                app()->setLocale('en');
-            }
+            // Set locale to English only (Arabic removed)
+            app()->setLocale('en');
 
             return $next($request);
             

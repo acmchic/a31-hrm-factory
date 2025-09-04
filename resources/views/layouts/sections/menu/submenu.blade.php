@@ -1,7 +1,7 @@
 <ul class="menu-sub">
   @if (isset($menu))
     @foreach ($menu as $submenu)
-    @if ($role === 'Admin' || isset($submenu->role) && in_array($role, $submenu->role))
+    @if ($role === 'Admin' || $role === 'Super Admin' || $role === 'HR' || $role === 'CC' || $role === 'AM' || $role === 'CR' || isset($submenu->role) && in_array($role, $submenu->role))
     {{-- active menu method --}}
     @php
       $activeClass = null;

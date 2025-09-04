@@ -32,7 +32,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('lang/{locale}', [LanguageController::class, 'swap']);
+// Language switching disabled
+// Route::get('lang/{locale}', [LanguageController::class, 'swap']);
 
 // Routes cho quân nhân
 Route::prefix('military')->group(function () {
@@ -99,6 +100,33 @@ Route::middleware([
     Route::get('/user/profile', function() {
         return view('profile.show-vietnamese');
     })->name('profile.show');
+    
+    // Vehicle Registration System
+    Route::get('/vehicles/registration', \App\Livewire\VehicleRegistration::class)->name('vehicle-registration');
+    
+    // Debug route to check user roles
+    Route::get('/debug-roles', function() {
+        $user = Auth::user();
+        
+        // Ensure roles exist
+        $roles = ['Admin', 'HR', 'CC', 'AM'];
+        foreach ($roles as $roleName) {
+            \Spatie\Permission\Models\Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+        }
+        
+        return response()->json([
+            'user' => $user->email ?? $user->username,
+            'name' => $user->name,
+            'username' => $user->username ?? 'N/A',
+            'roles' => $user->getRoleNames(),
+            'has_admin' => $user->hasRole('Admin'),
+            'has_hr' => $user->hasRole('HR'),
+            'has_cc' => $user->hasRole('CC'),
+            'has_am' => $user->hasRole('AM'),
+            'has_any_role' => $user->hasAnyRole(['Admin', 'HR', 'CC']),
+            'all_roles_in_db' => \Spatie\Permission\Models\Role::pluck('name')->toArray(),
+        ]);
+    });
 
     Route::group(['middleware' => ['role:Admin|HR']], function () {
         Route::prefix('structure')->group(function () {

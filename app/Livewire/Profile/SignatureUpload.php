@@ -33,21 +33,21 @@ class SignatureUpload extends Component
 
         $user = Auth::user();
         
-        // Delete old signature
-        if ($user->signature_path) {
-            Storage::disk('public')->delete($user->signature_path);
+        // Delete old signature from storage
+        $oldSignaturePath = $this->getUserSignaturePath($user);
+        if ($oldSignaturePath) {
+            Storage::disk('public')->delete($oldSignaturePath);
         }
 
+        // Store new signature with unique filename
         $filename = 'signature_' . $user->id . '_' . time() . '.' . $this->signatureImage->getClientOriginalExtension();
         $path = $this->signatureImage->storeAs('signatures', $filename, 'public');
 
-        // Try to update signature_path, fallback if column doesn't exist
-        try {
-            $user->update(['signature_path' => $path]);
-        } catch (\Exception $e) {
-            // If column doesn't exist, store in session temporarily
-            session(['user_signature_path_' . $user->id => $path]);
-        }
+        // Save signature path to database (column now exists)
+        $user->update(['signature_path' => $path]);
+        
+        // Also clear any old session data
+        session()->forget('user_signature_path_' . $user->id);
 
         $this->reset('signatureImage');
         $this->isUploading = false;
@@ -62,14 +62,14 @@ class SignatureUpload extends Component
         $signaturePath = $this->getUserSignaturePath($user);
         
         if ($signaturePath) {
+            // Delete file from storage
             Storage::disk('public')->delete($signaturePath);
             
-            try {
-                $user->update(['signature_path' => null]);
-            } catch (\Exception $e) {
-                // If column doesn't exist, remove from session
-                session()->forget('user_signature_path_' . $user->id);
-            }
+            // Remove from database
+            $user->update(['signature_path' => null]);
+            
+            // Also clear any session data
+            session()->forget('user_signature_path_' . $user->id);
             
             session()->flash('success', 'Đã xóa chữ ký điện tử!');
         }
@@ -77,12 +77,8 @@ class SignatureUpload extends Component
     
     protected function getUserSignaturePath($user)
     {
-        // Try to get from database first, fallback to session
-        try {
-            return $user->signature_path;
-        } catch (\Exception $e) {
-            return session('user_signature_path_' . $user->id);
-        }
+        // Priority: database first, then session as fallback
+        return $user->signature_path ?? session('user_signature_path_' . $user->id);
     }
 
     public function render()

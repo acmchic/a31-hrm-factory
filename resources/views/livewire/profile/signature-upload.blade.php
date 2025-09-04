@@ -3,7 +3,8 @@
   
   {{-- Current Signature --}}
   @php
-    $currentSignature = session('user_signature_path_' . Auth::id()) ?? (Auth::user()->signature_path ?? null);
+    // Get signature path directly from database
+    $currentSignature = Auth::user()->signature_path;
   @endphp
   @if($currentSignature)
     <div class="mb-4">
