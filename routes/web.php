@@ -88,7 +88,7 @@ Route::middleware([
             
             return response($pdfContent)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="don_nghi_phep_' . $employeeLeave->id . '.pdf"');
+                ->header('Content-Disposition', 'attachment; filename="Don xin nghi phep - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '.pdf"');
                 
         } catch (\Exception $e) {
             abort(500, 'Lỗi tạo PDF: ' . $e->getMessage());

@@ -57,13 +57,13 @@
                 <thead>
                   <tr>
                     <th>STT</th>
-                    <th>Employee</th>
-                    <th>Type</th>
-                    <th>From Date</th>
-                    <th>To Date</th>
-                    <th>Note</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>Nhân viên</th>
+                    <th>Loại nghỉ</th>
+                    <th>Từ ngày</th>
+                    <th>Đến ngày</th>
+                    <th>Ghi chú</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -87,8 +87,8 @@
                         </div>
                       </td>
                       <td>{{ $leave->leave->name ?? 'N/A' }}</td>
-                      <td>{{ $leave->from_date }}</td>
-                      <td>{{ $leave->to_date }}</td>
+                      <td>{{ $leave->from_date ? \Carbon\Carbon::parse($leave->from_date)->format('d-m-Y') : 'N/A' }}</td>
+                      <td>{{ $leave->to_date ? \Carbon\Carbon::parse($leave->to_date)->format('d-m-Y') : 'N/A' }}</td>
                       <td>{{ Str::limit($leave->note, 30) }}</td>
                       <td>
                         @php
@@ -118,8 +118,8 @@
                             <i class="ti ti-eye"></i>
                           </button>
                           
-                          {{-- Approval actions for department heads and HR --}}
-                          @if($leave->status === 'pending' && auth()->user()->hasAnyRole(['Admin', 'HR', 'Head of Department', 'CC']))
+                          {{-- Approval actions for department heads and HR (not for own leaves) --}}
+                          @if($leave->status === 'pending' && $leave->employee_id != auth()->user()->id && auth()->user()->hasAnyRole(['Admin', 'HR', 'Head of Department', 'CC']))
                             <button wire:click.prevent="approveLeave({{ $leave->id }})" 
                                     class="btn btn-sm btn-success" 
                                     title="Phê duyệt">
@@ -195,33 +195,97 @@
     </div>
   @endif
 
-  {{-- Detail Modals --}}
+  {{-- Detail/Edit Modals --}}
   @foreach($leaves as $leave)
+    @php
+      $user = \App\Models\User::find($leave->employee_id);
+      $isUserLeave = $leave->employee_id == auth()->user()->id;
+      $canApprove = !$isUserLeave && auth()->user()->hasAnyRole(['Admin', 'HR', 'Head of Department', 'CC']);
+    @endphp
+    
     <div wire:ignore.self class="modal fade" id="detailModal{{ $leave->id }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Chi tiết đơn nghỉ phép</h5>
+            <h5 class="modal-title">{{ $canApprove ? 'Phê duyệt đơn nghỉ phép' : 'Chi tiết đơn nghỉ phép' }}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <div class="row">
-              <div class="col-md-6">
-                <strong>Nhân viên:</strong> {{ \App\Models\User::find($leave->employee_id)->name ?? 'N/A' }}
+            <form>
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Nhân viên</label>
+                  <div class="alert alert-info d-flex align-items-center">
+                    <div class="avatar avatar-sm me-3">
+                      <span class="avatar-initial rounded-circle bg-label-primary">
+                        {{ substr($user->name ?? 'U', 0, 2) }}
+                      </span>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">{{ $user->name ?? 'Unknown' }}</h6>
+                      <small class="text-muted">{{ $user->username ?? 'N/A' }}</small>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-12">
+                  <label class="form-label">Loại nghỉ phép</label>
+                  <input type="text" class="form-control" value="{{ $leave->leave->name ?? 'N/A' }}" readonly>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Từ ngày</label>
+                  <input type="text" class="form-control" value="{{ $leave->from_date ? \Carbon\Carbon::parse($leave->from_date)->format('d-m-Y') : 'N/A' }}" readonly>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Đến ngày</label>
+                  <input type="text" class="form-control" value="{{ $leave->to_date ? \Carbon\Carbon::parse($leave->to_date)->format('d-m-Y') : 'N/A' }}" readonly>
+                </div>
+                
+                @if($leave->start_at || $leave->end_at)
+                <div class="col-md-6">
+                  <label class="form-label">Thời gian bắt đầu</label>
+                  <input type="text" class="form-control" value="{{ $leave->start_at ?? 'N/A' }}" readonly>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Thời gian kết thúc</label>
+                  <input type="text" class="form-control" value="{{ $leave->end_at ?? 'N/A' }}" readonly>
+                </div>
+                @endif
+                
+                <div class="col-12">
+                  <label class="form-label">Ghi chú</label>
+                  <textarea class="form-control" rows="3" readonly>{{ $leave->note ?? 'Không có ghi chú' }}</textarea>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Trạng thái</label>
+                  <input type="text" class="form-control" value="{{ $leave->status_text }}" readonly>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Ngày tạo</label>
+                  <input type="text" class="form-control" value="{{ $leave->created_at ? $leave->created_at->format('d-m-Y H:i') : 'N/A' }}" readonly>
+                </div>
               </div>
-              <div class="col-md-6">
-                <strong>Loại nghỉ:</strong> {{ $leave->leave->name ?? 'N/A' }}
-              </div>
-              <div class="col-md-6">
-                <strong>Từ ngày:</strong> {{ $leave->from_date }}
-              </div>
-              <div class="col-md-6">
-                <strong>Đến ngày:</strong> {{ $leave->to_date }}
-              </div>
-              <div class="col-12">
-                <strong>Ghi chú:</strong> {{ $leave->note ?? 'Không có' }}
-              </div>
-            </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            @if($canApprove && $leave->status === 'pending')
+              <button wire:click="approveLeave({{ $leave->id }})" class="btn btn-success" data-bs-dismiss="modal">
+                <i class="ti ti-check me-1"></i>Duyệt
+              </button>
+              <button wire:click="$set('rejection_reason', '')" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#rejectModal{{ $leave->id }}"
+                      data-bs-dismiss="modal"
+                      class="btn btn-danger">
+                <i class="ti ti-x me-1"></i>Từ chối
+              </button>
+            @endif
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
           </div>
         </div>
       </div>

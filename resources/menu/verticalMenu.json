@@ -5,17 +5,17 @@
       "name": "Dashboard",
       "icon": "menu-icon tf-icons ti ti-dashboard",
       "slug": "dashboard",
-      "role": ["AM", "CC", "CR", "HR"]
+      "role": ["Admin", "AM", "CC", "CR", "HR", "Guest"]
     },
     {
       "menuHeader": "Human resource",
-      "role": ["HR", "CC", "AM"]
+      "role": ["Admin", "HR", "CC", "AM", "Guest"]
     },
     {
       "name": "Attendance",
       "icon": "menu-icon tf-icons ti ti-door-exit",
       "slug": "attendance",
-      "role": ["HR", "CC", "AM"],
+      "role": ["Admin", "HR", "CC", "AM", "Guest"],
       "submenu": [
         {
           "url": "attendance/fingerprints",
@@ -27,13 +27,13 @@
           "url": "attendance/leaves",
           "name": "Leaves",
           "slug": "attendance-leaves",
-          "role": ["Admin", "HR", "CC", "AM"]
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
         },
         {
           "url": "/vehicles/registration",
           "name": "Đăng ký xe",
           "slug": "vehicle-registration",
-          "role": ["Admin", "HR", "CC", "AM"]
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
         }
       ]
     },

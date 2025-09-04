@@ -25,23 +25,42 @@
             </div>
             @endif
             <div class="col-12">
-              <label class="form-label w-100">{{ __('Employee') }}</label>
-              <div class="alert alert-info d-flex align-items-center">
-                <div class="avatar avatar-sm me-3">
-                  <span class="avatar-initial rounded-circle bg-label-primary">
-                    {{ substr(auth()->user()->name, 0, 2) }}
-                  </span>
+              <label class="form-label w-100">Nhân viên</label>
+              <div class="alert alert-info d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                  <div class="avatar avatar-sm me-3">
+                    <span class="avatar-initial rounded-circle bg-label-primary">
+                      {{ substr(auth()->user()->name, 0, 2) }}
+                    </span>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">{{ auth()->user()->name }}</h6>
+                    <small class="text-muted">{{ auth()->user()->username }}</small>
+                  </div>
                 </div>
-                <div>
-                  <h6 class="mb-0">{{ auth()->user()->name }}</h6>
-                  <small class="text-muted">ID: {{ auth()->user()->id }}</small>
+                <div class="text-end">
+                  @php
+                    $employee = \App\Models\Employee::where('user_id', auth()->id())->first();
+                    if ($employee) {
+                        // Force fresh data from database
+                        $employee = \App\Models\Employee::find($employee->id);
+                        $remainingDays = (int)$employee->annual_leave_balance;
+                    } else {
+                        $remainingDays = 12;
+                    }
+                  @endphp
+                  <div class="badge bg-label-success fs-6">
+                    <i class="ti ti-calendar-time me-1"></i>
+                    Còn lại: {{ $remainingDays }} ngày
+                  </div>
                 </div>
               </div>
             </div>
             <div class="col-12">
-              <label class="form-label w-100">{{ __('Type') }}</label>
+              <label class="form-label w-100">Loại nghỉ phép</label>
               <select wire:model='newLeaveInfo.LeaveId' class="form-control @error('newLeaveInfo.LeaveId') is-invalid @enderror">
-                <option value="">{{ __('Select leave type') }}</option>
+                <option value="">Chọn loại nghỉ phép</option>
+                @error('newLeaveInfo.LeaveId') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 @if(isset($leaveTypes))
                   @foreach($leaveTypes as $leaveType)
                     <option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>
@@ -53,20 +72,22 @@
               </select>
             </div>
             <div class="col-md-6 col-12">
-              <label class="form-label">{{ __('From Date') }}</label>
+              <label class="form-label">Từ ngày</label>
               <input wire:model='newLeaveInfo.fromDate' type="text" class="form-control flatpickr-input active @error('newLeaveInfo.fromDate') is-invalid @enderror" id="flatpickr-date-from" readonly="readonly">
+              @error('newLeaveInfo.fromDate') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-6 col-12">
-              <label class="form-label w-100">{{ __('To Date') }}</label>
+              <label class="form-label w-100">Đến ngày</label>
               <input wire:model='newLeaveInfo.toDate' type="text" class="form-control flatpickr-input active @error('newLeaveInfo.toDate') is-invalid @enderror" id="flatpickr-date-to" readonly="readonly" />
+              @error('newLeaveInfo.toDate') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-12">
-              <label class="form-label w-100">{{ __('Note') }} <small class="text-muted">({{ __('Optional') }})</small></label>
-              <textarea wire:model='newLeaveInfo.note' class="form-control" rows="3" placeholder="{{ __('Enter note here...') }}"></textarea>
+              <label class="form-label w-100">Ghi chú <small class="text-muted">(Tùy chọn)</small></label>
+              <textarea wire:model='newLeaveInfo.note' class="form-control" rows="3" placeholder="Nhập ghi chú..."></textarea>
             </div>
             <div class="col-12 text-center">
-              <button type="submit" class="btn btn-primary me-sm-3 me-1">{{ __('Submit') }}</button>
-              <button type="reset" class="btn btn-label-secondary btn-reset" data-bs-dismiss="modal" aria-label="Close">{{ __('Cancel') }}</button>
+              <button type="submit" class="btn btn-primary me-sm-3 me-1">Gửi đơn</button>
+              <button type="reset" class="btn btn-label-secondary btn-reset" data-bs-dismiss="modal" aria-label="Close">Hủy</button>
             </div>
           </form>
         </div>

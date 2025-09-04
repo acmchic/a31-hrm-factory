@@ -86,14 +86,34 @@ class Leaves extends Component
         $this->dateRange = $previousMonth->format('Y-n-1').' to '.$currentDate;
     }
 
+    public function getRemainingLeaveDays()
+    {
+        $employee = Employee::where('user_id', Auth::id())->first();
+        if ($employee) {
+            // Calculate balance = total - used
+            $balance = $employee->annual_leave_total - $employee->annual_leave_used;
+            return max(0, $balance);
+        }
+        return 12; // Default
+    }
+
+    public function calculateLeaveDays($fromDate, $toDate)
+    {
+        $from = Carbon::parse($fromDate);
+        $to = Carbon::parse($toDate);
+        return $from->diffInDays($to) + 1;
+    }
+
     public function render()
     {
         $leaves = $this->applyFilter();
+        $remainingLeaveDays = $this->getRemainingLeaveDays();
 
         return view('livewire.human-resource.attendance.leaves', [
             'leaves' => $leaves,
             'employees' => $this->employees,
             'leaveTypes' => $this->leaveTypes,
+            'remainingLeaveDays' => $remainingLeaveDays,
         ]);
     }
 
@@ -168,6 +188,19 @@ class Leaves extends Component
                 'newLeaveInfo.toDate' => 'To Date',
             ]
         );
+
+        // Check remaining leave balance
+        $employee = Employee::where('user_id', Auth::id())->first();
+        if ($employee) {
+            $requestedDays = $this->calculateLeaveDays($this->newLeaveInfo['fromDate'], $this->newLeaveInfo['toDate']);
+            $remainingDays = $employee->annual_leave_balance;
+            
+            if ($requestedDays > $remainingDays) {
+                $this->addError('newLeaveInfo.fromDate', 'Số ngày nghỉ phép yêu cầu (' . $requestedDays . ' ngày) vượt quá số ngày còn lại (' . $remainingDays . ' ngày)!');
+                $this->addError('newLeaveInfo.toDate', 'Vui lòng chọn ít ngày hơn!');
+                return;
+            }
+        }
 
         if (
             substr($this->newLeaveInfo['LeaveId'], 1, 1) == 1 &&
@@ -249,14 +282,10 @@ class Leaves extends Component
             'created_by' => Auth::user()->name,
         ]);
 
-        // Auto-assign reviewer (head of department) - Disabled for simplicity
-        // $this->assignReviewer($employeeLeave);
-
-        session()->flash('success', __('Success, record created successfully!'));
+        session()->flash('success', 'Thành công, bản ghi đã được tạo!');
         $this->dispatch('scrollToTop');
-
         $this->dispatch('closeModal', elementId: '#leaveModal');
-        $this->dispatch('toastr', type: 'success' /* , title: 'Done!' */, message: __('Going Well!'));
+        $this->dispatch('toastr', type: 'success', message: 'Đơn nghỉ phép đã được tạo thành công!');
     }
 
     public function showUpdateLeaveModal($id)
@@ -388,10 +417,28 @@ class Leaves extends Component
                 ]);
             }
 
+            // Update employee leave balance
+            $this->updateLeaveBalance($employeeLeave);
+
             session()->flash('success', 'Đơn nghỉ phép đã được phê duyệt thành công!');
             
         } catch (\Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra khi phê duyệt: ' . $e->getMessage());
+        }
+    }
+
+    public function updateLeaveBalance($employeeLeave)
+    {
+        $employee = Employee::find($employeeLeave->employee_id);
+        if ($employee) {
+            $leaveDays = $this->calculateLeaveDays($employeeLeave->from_date, $employeeLeave->to_date);
+            $newUsed = $employee->annual_leave_used + $leaveDays;
+            $newBalance = max(0, $employee->annual_leave_total - $newUsed);
+            
+            $employee->update([
+                'annual_leave_used' => $newUsed,
+                'annual_leave_balance' => $newBalance
+            ]);
         }
     }
 

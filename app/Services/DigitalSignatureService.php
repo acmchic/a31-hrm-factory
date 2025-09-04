@@ -30,11 +30,32 @@ class DigitalSignatureService
                 'digital_signature' => 'approved_by_' . $signer->name . '_at_' . now()->format('Y-m-d_H-i-s'),
             ]);
 
+            // Update employee leave balance
+            $this->updateEmployeeLeaveBalance($leaveRequest);
+
             return true;
 
         } catch (\Exception $e) {
             Log::error('Error approving leave request: ' . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Update employee leave balance after approval
+     */
+    public function updateEmployeeLeaveBalance(EmployeeLeave $leaveRequest)
+    {
+        $employee = \App\Models\Employee::find($leaveRequest->employee_id);
+        if ($employee) {
+            $leaveDays = \Carbon\Carbon::parse($leaveRequest->from_date)->diffInDays(\Carbon\Carbon::parse($leaveRequest->to_date)) + 1;
+            $newUsed = $employee->annual_leave_used + $leaveDays;
+            $newBalance = max(0, $employee->annual_leave_total - $newUsed);
+            
+            $employee->update([
+                'annual_leave_used' => $newUsed,
+                'annual_leave_balance' => $newBalance
+            ]);
         }
     }
 
@@ -93,20 +114,21 @@ class DigitalSignatureService
                 $fullSignaturePath = storage_path('app/public/' . $signaturePath);
                 
                 if (file_exists($fullSignaturePath)) {
-                    // Position signature at bottom right
-                    $pdf->SetXY(120, 250); // Adjust position as needed
-                    
-                    // Add signature image
-                    $pdf->Image($fullSignaturePath, '', '', 60, 30, '', '', '', false, 300, '', false, false, 0);
-                    
-                    // Add approval text below signature
-                    $pdf->SetXY(120, 280);
+                    // Add approval text above signature
+                    $pdf->SetXY(120, 160);
                     $pdf->SetFont('dejavusans', 'B', 10);
                     $pdf->Cell(60, 10, 'Người phê duyệt', 0, 1, 'C');
-                    $pdf->SetXY(120, 285);
+                    
+                    // Add signature image
+                    $pdf->SetXY(130, 170);
+                    $pdf->Image($fullSignaturePath, '', '', 40, 20, '', '', '', false, 300, '', false, false, 0);
+                    
+                    // Add approver name below signature
+                    $pdf->SetXY(120, 195);
                     $pdf->SetFont('dejavusans', '', 9);
                     $pdf->Cell(60, 10, $approver->name, 0, 1, 'C');
-                    $pdf->SetXY(120, 290);
+                    $pdf->SetXY(120, 200);
+                    $pdf->SetFont('dejavusans', '', 8);
                     $pdf->Cell(60, 10, $leaveRequest->approved_at->format('d/m/Y H:i'), 0, 1, 'C');
                 }
             }
@@ -125,9 +147,9 @@ class DigitalSignatureService
         <style>
             .header {
                 text-align: center;
-                margin-bottom: 30px;
-                padding-bottom: 20px;
-                border-bottom: 3px solid #667eea;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #667eea;
             }
             .company-name {
                 font-size: 16px;
@@ -145,11 +167,14 @@ class DigitalSignatureService
                 width: 100%;
                 border-collapse: collapse;
                 margin: 20px 0;
+                border-spacing: 0;
             }
             .info-table td {
-                padding: 12px;
+                padding: 10px 12px;
                 border: 1px solid #dee2e6;
                 vertical-align: top;
+                font-size: 12px;
+                line-height: 1.5;
             }
             .label {
                 font-weight: bold;
@@ -177,44 +202,41 @@ class DigitalSignatureService
         </style>
         
         <div class="header">
-            <div class="company-name">HỆ THỐNG QUẢN LÝ NHÂN SỰ - HRMS</div>
+            <div class="company-name">NHÀ MÁY A31 - QUÂN CHỦNG PK-KQ</div>
             <div class="document-title">ĐƠN XIN NGHỈ PHÉP</div>
-            <div style="font-size: 12px; color: #6c757d; margin-top: 10px;">
-                Số: ' . str_pad($leaveRequest->id, 4, '0', STR_PAD_LEFT) . '/' . date('Y') . '/NP-HRMS
-            </div>
         </div>
         
         <table class="info-table">
             <tr>
-                <td class="label">Họ và tên nhân viên:</td>
-                <td class="value">' . ($user->name ?? 'N/A') . '</td>
+                <td class="label"><br>&nbsp;&nbsp;Họ và tên nhân viên:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($user->name ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
             </tr>
             <tr>
-                <td class="label">Mã nhân viên:</td>
-                <td class="value">' . ($user->username ?? 'N/A') . '</td>
+                <td class="label"><br>&nbsp;&nbsp;Mã nhân viên:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($user->username ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
             </tr>
             <tr>
-                <td class="label">Loại nghỉ phép:</td>
-                <td class="value">' . ($leave->name ?? 'N/A') . '</td>
+                <td class="label"><br>&nbsp;&nbsp;Loại nghỉ phép:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($leave->name ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
             </tr>
             <tr>
-                <td class="label">Thời gian nghỉ:</td>
-                <td class="value">
-                    Từ ngày: ' . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . '<br>
-                    Đến ngày: ' . ($leaveRequest->to_date ? $leaveRequest->to_date->format('d/m/Y') : 'N/A') . '
+                <td class="label"><br>&nbsp;&nbsp;Thời gian nghỉ:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;
+                    Từ ngày: ' . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . '<br>&nbsp;&nbsp;
+                    Đến ngày: ' . ($leaveRequest->to_date ? $leaveRequest->to_date->format('d/m/Y') : 'N/A') . '&nbsp;&nbsp;<br>&nbsp;
                 </td>
             </tr>
             <tr>
-                <td class="label">Lý do nghỉ phép:</td>
-                <td class="value">' . ($leaveRequest->note ?: 'Không có ghi chú cụ thể') . '</td>
+                <td class="label"><br>&nbsp;&nbsp;Lý do nghỉ phép:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($leaveRequest->note ?: 'Không có ghi chú cụ thể') . '&nbsp;&nbsp;<br>&nbsp;</td>
             </tr>
             <tr>
-                <td class="label">Ngày tạo đơn:</td>
-                <td class="value">' . ($leaveRequest->created_at ? $leaveRequest->created_at->format('d/m/Y H:i') : 'N/A') . '</td>
+                <td class="label"><br>&nbsp;&nbsp;Ngày tạo đơn:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($leaveRequest->created_at ? $leaveRequest->created_at->format('d/m/Y H:i') : 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
             </tr>
             <tr>
-                <td class="label">Trạng thái:</td>
-                <td class="value">
+                <td class="label"><br>&nbsp;&nbsp;Trạng thái:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;
                     <span class="status-' . ($leaveRequest->status ?? 'pending') . '">
                         ' . match($leaveRequest->status ?? 'pending') {
                             'pending' => 'CHỜ PHÊ DUYỆT',
@@ -222,7 +244,7 @@ class DigitalSignatureService
                             'rejected' => 'BỊ TỪ CHỐI',
                             default => 'KHÔNG XÁC ĐỊNH'
                         } . '
-                    </span>
+                    </span>&nbsp;&nbsp;<br>&nbsp;
                 </td>
             </tr>';
         
@@ -249,13 +271,7 @@ class DigitalSignatureService
         
         $html .= '</table>';
         
-        // Add footer
-        $html .= '
-        <div class="footer">
-            <p style="font-size: 10px; color: #6c757d; text-align: center;">
-                Đơn này được tạo tự động bởi Hệ thống HRMS vào ngày ' . now()->format('d/m/Y H:i') . '
-            </p>
-        </div>';
+        // No footer needed
         
         return $html;
     }

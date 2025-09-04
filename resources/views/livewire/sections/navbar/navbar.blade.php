@@ -113,27 +113,6 @@
             @endif
             <!-- Progress Bar -->
 
-            <!-- Language -->
-            <li class="nav-item dropdown-language dropdown me-2 me-xl-1">
-              <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                <i class="fi fi-us fis rounded-circle me-1 fs-3"></i>
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <a class="dropdown-item {{ App::getLocale() == 'ar' ? 'selected' : '' }}" href="{{ url('lang/ar') }}" data-language="ar" data-text-direction="rtl">
-                    <i class="fi fi-sy fis rounded-circle me-1 fs-3"></i>
-                    <span class="align-middle">العربية</span>
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item {{ App::getLocale() == 'en' ? 'selected' : '' }}" href="{{ url('lang/en') }}" data-language="en" data-text-direction="ltr">
-                    <i class="fi fi-us fis rounded-circle me-1 fs-3"></i>
-                    <span class="align-middle">English</span>
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <!-- Language -->
 
             <!-- Notification -->
             <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">

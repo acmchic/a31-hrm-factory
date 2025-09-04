@@ -36,7 +36,7 @@
 
       @if ($isMenu)
         {{-- @include('layouts/sections/menu/verticalMenu') --}}
-        @livewire('sections.menu.verticalMenu')
+        @livewire('sections.menu.vertical-menu')
       @endif
 
       <!-- Layout page -->

@@ -18,6 +18,22 @@ class VehicleRegistration extends Component
     
     protected $listeners = ['refreshComponent' => '$refresh'];
 
+    // Workflow status constants
+    const STATUS_SUBMITTED = 'submitted';
+    const STATUS_DEPT_REVIEW = 'dept_review';
+    const STATUS_DIRECTOR_REVIEW = 'director_review';
+    const STATUS_APPROVED = 'approved';
+    const STATUS_REJECTED = 'rejected';
+
+    // Vietnamese status labels
+    const STATUS_LABELS = [
+        self::STATUS_SUBMITTED => 'Chờ Trưởng phòng duyệt',
+        self::STATUS_DEPT_REVIEW => 'Chờ Thủ trưởng duyệt',
+        self::STATUS_DIRECTOR_REVIEW => 'Chờ Thủ trưởng duyệt',
+        self::STATUS_APPROVED => 'Đã phê duyệt',
+        self::STATUS_REJECTED => 'Bị từ chối',
+    ];
+
     // Registration form properties
     public $vehicle_id = '';
     public $departure_date = '';
@@ -32,6 +48,9 @@ class VehicleRegistration extends Component
     public $statusFilter = '';
     public $categoryFilter = '';
     public $dateFilter = '';
+    
+    // Selected registration for detail view
+    public $selectedRegistration;
 
     // Modal states
     public $isCreating = false;
@@ -254,17 +273,22 @@ class VehicleRegistration extends Component
                     'passenger_count' => 1, // Default value
                     'driver_name' => $driver->name ?? '',
                     'driver_license' => '',
-                    'workflow_status' => 'submitted',
+                    'workflow_status' => self::STATUS_SUBMITTED,
                     'created_by' => Auth::user()->name,
                 ]);
 
-                // Auto-assign to department head for review
-                $this->assignToDepartmentHead($registration);
+                // Set initial status to wait for department head approval
+                // No auto-assignment needed
                 session()->flash('success', 'Đăng ký xe đã được gửi thành công! Chờ phê duyệt từ trưởng phòng.');
+                
+                // Reset form and refresh component
+                $this->resetForm();
+                $this->dispatch('clearVehicleForm');
+                $this->dispatch('closeModal', elementId: '#vehicleModal');
+                
+                // Force component refresh to show new record immediately
+                return redirect()->to(request()->header('Referer'));
             }
-
-            $this->resetForm();
-            $this->dispatch('clearVehicleForm');
             
         } catch (\Exception $e) {
             session()->flash('error', 'Lỗi khi tạo đăng ký: ' . $e->getMessage());
@@ -568,18 +592,20 @@ class VehicleRegistration extends Component
     {
         $this->resetForm();
         $this->isEdit = false;
+        $this->editingRegistrationId = null;
         $this->loadVehicleData();
     }
 
     public function showUpdateVehicleModal($registrationId)
     {
-        $registration = VehicleRegistrationModel::where('id', $registrationId)
-            ->where('user_id', Auth::id())
-            ->first();
+        $registration = VehicleRegistrationModel::find($registrationId);
 
-        if ($registration) {
-            $this->editingRegistrationId = $registrationId;
+        if ($registration && $registration->user_id == Auth::user()->id) {
+            // Set edit mode first
             $this->isEdit = true;
+            $this->editingRegistrationId = $registrationId;
+            
+            // Load registration data
             $this->vehicle_id = $registration->vehicle_id;
             $this->departure_date = $registration->departure_date;
             $this->return_date = $registration->return_date;
@@ -590,21 +616,37 @@ class VehicleRegistration extends Component
             $driver = \App\Models\Employee::where('name', $registration->driver_name)->first();
             $this->driver_id = $driver->id ?? '';
             
+            // Load vehicle data last
             $this->loadVehicleData();
+            
+            session()->flash('success', 'Đã tải dữ liệu để chỉnh sửa!');
+        } else {
+            session()->flash('error', 'Không tìm thấy đăng ký xe để chỉnh sửa! ID: ' . $registrationId . ' | User: ' . Auth::user()->id . ' | Registration User: ' . ($registration->user_id ?? 'null'));
         }
     }
 
     public function viewRegistrationDetail($registrationId)
     {
-        // Placeholder for viewing registration details
-        // This will be used for modal popup
+        $this->selectedRegistration = VehicleRegistrationModel::with(['vehicle', 'user'])->find($registrationId);
+    }
+
+    public function confirmDeleteRegistration($registrationId)
+    {
+        $registration = VehicleRegistrationModel::find($registrationId);
+        
+        if ($registration && $registration->user_id == Auth::user()->id && $registration->workflow_status === self::STATUS_SUBMITTED) {
+            $registration->delete();
+            session()->flash('success', 'Đã xóa đăng ký xe thành công!');
+        } else {
+            session()->flash('error', 'Không thể xóa đăng ký xe này!');
+        }
     }
 
     public function approveDepartment($registrationId)
     {
         $registration = VehicleRegistrationModel::find($registrationId);
         
-        if ($registration && $registration->workflow_status === 'submitted') {
+        if ($registration && $registration->workflow_status === self::STATUS_SUBMITTED) {
             // Add digital signature for department approval
             $signatureData = [
                 'approved_by' => Auth::user()->name,
@@ -614,13 +656,13 @@ class VehicleRegistration extends Component
             ];
             
             $registration->update([
-                'workflow_status' => 'dept_review',
+                'workflow_status' => self::STATUS_DEPT_REVIEW,
                 'department_approved_at' => now(),
-                'department_approved_by' => Auth::id(),
+                'department_approved_by' => Auth::user()->id,
                 'digital_signature_dept' => json_encode($signatureData),
             ]);
             
-            session()->flash('success', 'Đã phê duyệt cấp trưởng phòng. Chờ giám đốc phê duyệt.');
+            session()->flash('success', 'Đã phê duyệt cấp trưởng phòng. Chờ Thủ trưởng phê duyệt.');
         }
     }
 
@@ -628,7 +670,7 @@ class VehicleRegistration extends Component
     {
         $registration = VehicleRegistrationModel::find($registrationId);
         
-        if ($registration && $registration->workflow_status === 'dept_review') {
+        if ($registration && $registration->workflow_status === self::STATUS_DEPT_REVIEW) {
             // Add digital signature for director approval
             $signatureData = [
                 'approved_by' => Auth::user()->name,
@@ -638,13 +680,13 @@ class VehicleRegistration extends Component
             ];
             
             $registration->update([
-                'workflow_status' => 'approved',
+                'workflow_status' => self::STATUS_APPROVED,
                 'director_approved_at' => now(),
-                'director_approved_by' => Auth::id(),
+                'director_approved_by' => Auth::user()->id,
                 'digital_signature_director' => json_encode($signatureData),
             ]);
             
-            session()->flash('success', 'Đã phê duyệt cấp giám đốc. Đăng ký xe đã hoàn tất.');
+            session()->flash('success', 'Đã phê duyệt cấp Thủ trưởng. Đăng ký xe đã hoàn tất.');
         }
     }
 
