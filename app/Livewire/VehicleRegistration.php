@@ -729,14 +729,53 @@ class VehicleRegistration extends Component
             // Use DigitalSignatureService to generate PDF
             $digitalSignatureService = new \App\Services\DigitalSignatureService();
             $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration);
-            
+
             $filename = 'dang_ky_xe_' . $registration->id . '_' . date('Y_m_d') . '.pdf';
-            
-            return response($pdfContent)
-                ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-                
+
+            // Save PDF to temporary file and redirect for download
+            $tempPath = storage_path('app/temp/' . $filename);
+
+            // Ensure temp directory exists
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            // Check if this is a PDF binary response or text fallback
+            if (is_string($pdfContent) && !preg_match('/^%PDF-/', $pdfContent)) {
+                // This is text fallback, apply UTF-8 encoding and save as text
+                $pdfContent = mb_convert_encoding($pdfContent, 'UTF-8', 'UTF-8');
+                $tempPath = str_replace('.pdf', '.txt', $tempPath);
+                $filename = str_replace('.pdf', '.txt', $filename);
+            }
+
+            // Save content to temp file
+            $writeResult = file_put_contents($tempPath, $pdfContent);
+
+            \Log::info('File write result', [
+                'temp_path' => $tempPath,
+                'write_result' => $writeResult,
+                'file_exists' => file_exists($tempPath),
+                'file_size' => file_exists($tempPath) ? filesize($tempPath) : 0,
+                'content_length' => strlen($pdfContent)
+            ]);
+
+            // Use JavaScript to trigger download
+            \Log::info('Dispatching download event', [
+                'filename' => $filename,
+                'path' => $tempPath,
+                'registration_id' => $registrationId
+            ]);
+
+            // Try direct redirect first, if not working, use JavaScript dispatch
+            $downloadUrl = '/download-temp-file?filename=' . urlencode($filename);
+            return redirect($downloadUrl);
+
         } catch (\Exception $e) {
+            // Log the full error for debugging
+            \Log::error('Vehicle PDF Download Error: ' . $e->getMessage());
+            \Log::error('Registration ID: ' . $registrationId);
+            \Log::error('Registration Status: ' . $registration->workflow_status);
+
             session()->flash('error', 'Lỗi tạo PDF: ' . $e->getMessage());
         }
     }

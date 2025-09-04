@@ -409,43 +409,37 @@ class DigitalSignatureService
     public function generateVehicleRegistrationPDF($registration)
     {
         try {
-            // Sử dụng TCPDF để tạo PDF tiếng Việt
+            // Sử dụng TCPDF để tạo PDF tiếng Việt (same as leaves)
             $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
             
             // Set document information
-            $pdf->SetCreator('HRMS - Hệ thống quản lý nhân sự');
-            $pdf->SetAuthor('Quân đội nhân dân Việt Nam');
+            $pdf->SetCreator('Hệ thống HRMS');
+            $pdf->SetAuthor('HRMS');
             $pdf->SetTitle('Đăng ký xe công - ' . $registration->id);
-            $pdf->SetSubject('Đăng ký sử dụng xe công');
-            
-            // Remove default header/footer
-            $pdf->setPrintHeader(false);
-            $pdf->setPrintFooter(false);
+            $pdf->SetSubject('Đăng ký xe công');
             
             // Set margins
             $pdf->SetMargins(20, 20, 20);
-            $pdf->SetAutoPageBreak(true, 25);
+            $pdf->SetAutoPageBreak(TRUE, 25);
             
             // Add a page
             $pdf->AddPage();
             
-            // Generate HTML content
-            $htmlContent = $this->generateVehicleRegistrationHTMLContent($registration);
+            // Set font for Vietnamese
+            $pdf->SetFont('dejavusans', '', 12);
             
-            // Write HTML content
-            $pdf->writeHTML($htmlContent, true, false, true, false, '');
+            // Add content
+            $html = $this->generateVehicleRegistrationHTMLContent($registration);
+            $pdf->writeHTML($html, true, false, true, false, '');
             
-            // Add signatures if available
+            // Add signature if available
             $this->addVehicleSignaturesToPDF($pdf, $registration);
             
-            return $pdf->Output('', 'S'); // Return as string
+            return $pdf->Output('', 'S');
             
         } catch (\Exception $e) {
             Log::error('Error generating vehicle registration PDF: ' . $e->getMessage());
-            
-            // Fallback: return plain text file
-            $content = $this->generateVehicleRegistrationTextContent($registration);
-            return $content;
+            throw $e;
         }
     }
 
@@ -457,76 +451,159 @@ class DigitalSignatureService
         $user = $registration->user;
         $vehicle = $registration->vehicle;
         
-        return '
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h2 style="color: #2c5aa0; font-weight: bold; margin-bottom: 10px;">QUÂN ĐỘI NHÂN DÂN VIỆT NAM</h2>
-            <h3 style="color: #2c5aa0; font-weight: bold; margin-bottom: 20px;">ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG</h3>
-            <p style="margin-bottom: 30px;"><strong>Số:</strong> ' . str_pad($registration->id, 4, '0', STR_PAD_LEFT) . '/ĐKXC</p>
+        $html = '
+        <style>
+            .header {
+                text-align: center;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #667eea;
+            }
+            .company-name {
+                font-size: 16px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            .document-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: #667eea;
+                margin-top: 10px;
+            }
+            .info-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                border-spacing: 0;
+            }
+            .info-table td {
+                padding: 10px 12px;
+                border: 1px solid #dee2e6;
+                vertical-align: top;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+            .label {
+                font-weight: bold;
+                background-color: #f8f9fa;
+                width: 35%;
+                color: #495057;
+            }
+            .value {
+                background-color: white;
+                color: #212529;
+            }
+            .footer {
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #dee2e6;
+            }
+        </style>
+        
+        <div class="header">
+            <div class="company-name">NHÀ MÁY A31 - QUÂN CHỦNG PK-KQ</div>
+            <div class="document-title">ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG</div>
         </div>
-
-        <div style="margin-bottom: 20px;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                    <td style="width: 30%; padding: 8px 0; font-weight: bold;">Người đăng ký:</td>
-                    <td style="width: 70%; padding: 8px 0;">' . htmlspecialchars($user->name ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Đơn vị:</td>
-                    <td style="padding: 8px 0;">Phòng Kế hoạch</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Xe đăng ký:</td>
-                    <td style="padding: 8px 0;">' . htmlspecialchars($vehicle->full_name ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Lái xe:</td>
-                    <td style="padding: 8px 0;">' . htmlspecialchars($registration->driver_name ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Ngày đi:</td>
-                    <td style="padding: 8px 0;">' . \Carbon\Carbon::parse($registration->departure_date)->format('d/m/Y') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Ngày về:</td>
-                    <td style="padding: 8px 0;">' . \Carbon\Carbon::parse($registration->return_date)->format('d/m/Y') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Tuyến đường:</td>
-                    <td style="padding: 8px 0;">' . htmlspecialchars($registration->route ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Lý do sử dụng:</td>
-                    <td style="padding: 8px 0;">' . htmlspecialchars($registration->purpose ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 0; font-weight: bold;">Ngày tạo đơn:</td>
-                    <td style="padding: 8px 0;">' . \Carbon\Carbon::parse($registration->created_at)->format('d/m/Y H:i') . '</td>
-                </tr>
-            </table>
-        </div>
-
-        <div style="margin-top: 40px;">
-            <p style="text-align: center; font-style: italic;">Kính đề nghị lãnh đạo xem xét và phê duyệt.</p>
-        </div>';
+        
+        <table class="info-table">
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Người đăng ký:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($user->name ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Đơn vị:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;Phòng Kế hoạch&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Xe đăng ký:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($vehicle->full_name ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Lái xe:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($registration->driver_name ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Thời gian sử dụng:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;
+                    Từ ngày: ' . \Carbon\Carbon::parse($registration->departure_date)->format('d/m/Y') . '<br>&nbsp;&nbsp;
+                    Đến ngày: ' . \Carbon\Carbon::parse($registration->return_date)->format('d/m/Y') . '&nbsp;&nbsp;<br>&nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Tuyến đường:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($registration->route ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Mục đích sử dụng:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . ($registration->purpose ?? 'N/A') . '&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label"><br>&nbsp;&nbsp;Ngày tạo đơn:&nbsp;&nbsp;<br>&nbsp;</td>
+                <td class="value"><br>&nbsp;&nbsp;' . \Carbon\Carbon::parse($registration->created_at)->format('d/m/Y H:i') . '&nbsp;&nbsp;<br>&nbsp;</td>
+            </tr>
+        </table>';
+        
+        return $html;
     }
 
     /**
-     * Thêm chữ ký vào PDF đăng ký xe
+     * Thêm chữ ký vào PDF đăng ký xe (both dept and director signatures)
      */
     private function addVehicleSignaturesToPDF($pdf, $registration)
     {
-        $yPosition = 200; // Starting Y position for signatures
+        $yPosition = 160;
         
-        // Department signature
+        // Department signature (left side)
         if ($registration->digital_signature_dept) {
             $deptSignature = json_decode($registration->digital_signature_dept, true);
-            $this->addSignatureToVehiclePDF($pdf, $deptSignature, 30, $yPosition, 'Trưởng phòng Kế hoạch');
+            
+            // Add department title
+            $pdf->SetXY(30, $yPosition);
+            $pdf->SetFont('dejavusans', 'B', 10);
+            $pdf->Cell(60, 10, 'Trưởng phòng Kế hoạch', 0, 1, 'C');
+            
+            if (isset($deptSignature['signature_path']) && !empty($deptSignature['signature_path'])) {
+                $signaturePath = storage_path('app/public/' . $deptSignature['signature_path']);
+                if (file_exists($signaturePath)) {
+                    // Add signature image
+                    $pdf->Image($signaturePath, 40, $yPosition + 15, 40, 20, '', '', '', false, 300, '', false, false, 0);
+                }
+            }
+            
+            // Add approver name below signature
+            $pdf->SetXY(30, $yPosition + 40);
+            $pdf->SetFont('dejavusans', '', 9);
+            $pdf->Cell(60, 10, $deptSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
+            $pdf->SetXY(30, $yPosition + 45);
+            $pdf->SetFont('dejavusans', '', 8);
+            $pdf->Cell(60, 10, $deptSignature['approved_at'] ?? 'N/A', 0, 1, 'C');
         }
         
-        // Director signature
+        // Director signature (right side)
         if ($registration->digital_signature_director) {
             $directorSignature = json_decode($registration->digital_signature_director, true);
-            $this->addSignatureToVehiclePDF($pdf, $directorSignature, 120, $yPosition, 'Ban Giám đốc');
+            
+            // Add director title
+            $pdf->SetXY(120, $yPosition);
+            $pdf->SetFont('dejavusans', 'B', 10);
+            $pdf->Cell(60, 10, 'Ban Giám đốc', 0, 1, 'C');
+            
+            if (isset($directorSignature['signature_path']) && !empty($directorSignature['signature_path'])) {
+                $signaturePath = storage_path('app/public/' . $directorSignature['signature_path']);
+                if (file_exists($signaturePath)) {
+                    // Add signature image
+                    $pdf->Image($signaturePath, 130, $yPosition + 15, 40, 20, '', '', '', false, 300, '', false, false, 0);
+                }
+            }
+            
+            // Add approver name below signature
+            $pdf->SetXY(120, $yPosition + 40);
+            $pdf->SetFont('dejavusans', '', 9);
+            $pdf->Cell(60, 10, $directorSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
+            $pdf->SetXY(120, $yPosition + 45);
+            $pdf->SetFont('dejavusans', '', 8);
+            $pdf->Cell(60, 10, $directorSignature['approved_at'] ?? 'N/A', 0, 1, 'C');
         }
     }
 
@@ -535,26 +612,29 @@ class DigitalSignatureService
      */
     private function addSignatureToVehiclePDF($pdf, $signatureData, $x, $y, $title)
     {
-        // Add signature title
+        // Add signature title with UTF-8 encoding
         $pdf->SetXY($x, $y);
         $pdf->SetFont('dejavusans', 'B', 12);
-        $pdf->Cell(0, 10, $title, 0, 1, 'C');
-        
+        $pdf->Cell(0, 10, mb_convert_encoding($title, 'UTF-8', 'UTF-8'), 0, 1, 'C');
+
         // Add signature image if available
         if (isset($signatureData['signature_path']) && !empty($signatureData['signature_path'])) {
             $signaturePath = storage_path('app/public/' . $signatureData['signature_path']);
-            
+
             if (file_exists($signaturePath)) {
                 $pdf->Image($signaturePath, $x + 10, $y + 15, 40, 20);
             }
         }
-        
-        // Add approval info
+
+        // Add approval info with proper encoding
+        $approvedBy = htmlspecialchars($signatureData['approved_by'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+        $approvedAt = htmlspecialchars($signatureData['approved_at'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+
         $pdf->SetXY($x, $y + 40);
         $pdf->SetFont('dejavusans', '', 10);
-        $pdf->Cell(0, 5, 'Người phê duyệt: ' . ($signatureData['approved_by'] ?? 'N/A'), 0, 1, 'C');
+        $pdf->Cell(0, 5, 'Người phê duyệt: ' . $approvedBy, 0, 1, 'C');
         $pdf->SetXY($x, $y + 45);
-        $pdf->Cell(0, 5, 'Thời gian: ' . ($signatureData['approved_at'] ?? 'N/A'), 0, 1, 'C');
+        $pdf->Cell(0, 5, 'Thời gian: ' . $approvedAt, 0, 1, 'C');
     }
 
     /**
@@ -564,18 +644,23 @@ class DigitalSignatureService
     {
         $user = $registration->user;
         $vehicle = $registration->vehicle;
-        
-        return "=== ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG ===\n\n" .
-               "Số: " . str_pad($registration->id, 4, '0', STR_PAD_LEFT) . "/ĐKXC\n\n" .
-               "Người đăng ký: " . ($user->name ?? 'N/A') . "\n" .
-               "Đơn vị: Phòng Kế hoạch\n" .
-               "Xe đăng ký: " . ($vehicle->full_name ?? 'N/A') . "\n" .
-               "Lái xe: " . ($registration->driver_name ?? 'N/A') . "\n" .
-               "Ngày đi: " . \Carbon\Carbon::parse($registration->departure_date)->format('d/m/Y') . "\n" .
-               "Ngày về: " . \Carbon\Carbon::parse($registration->return_date)->format('d/m/Y') . "\n" .
-               "Tuyến đường: " . ($registration->route ?? 'N/A') . "\n" .
-               "Lý do sử dụng: " . ($registration->purpose ?? 'N/A') . "\n" .
-               "Ngày tạo đơn: " . \Carbon\Carbon::parse($registration->created_at)->format('d/m/Y H:i') . "\n\n" .
-               "=== CHỮ KÝ PHÊ DUYỆT ===\n";
+
+        $content = "=== ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG ===\n\n" .
+                   "Số: " . str_pad($registration->id, 4, '0', STR_PAD_LEFT) . "/ĐKXC\n\n" .
+                   "Người đăng ký: " . ($user->name ?? 'N/A') . "\n" .
+                   "Đơn vị: Phòng Kế hoạch\n" .
+                   "Xe đăng ký: " . ($vehicle->full_name ?? 'N/A') . "\n" .
+                   "Lái xe: " . ($registration->driver_name ?? 'N/A') . "\n" .
+                   "Ngày đi: " . \Carbon\Carbon::parse($registration->departure_date)->format('d/m/Y') . "\n" .
+                   "Ngày về: " . \Carbon\Carbon::parse($registration->return_date)->format('d/m/Y') . "\n" .
+                   "Tuyến đường: " . ($registration->route ?? 'N/A') . "\n" .
+                   "Lý do sử dụng: " . ($registration->purpose ?? 'N/A') . "\n" .
+                   "Ngày tạo đơn: " . \Carbon\Carbon::parse($registration->created_at)->format('d/m/Y H:i') . "\n\n" .
+                   "=== CHỮ KÝ PHÊ DUYỆT ===\n";
+
+        // Clean content to avoid UTF-8 encoding issues (same as leaves module)
+        $content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
+
+        return $content;
     }
 }

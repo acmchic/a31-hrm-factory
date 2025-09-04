@@ -162,9 +162,7 @@
                     @empty
                       <li class="border-top">
                         <p class="d-flex justify-content-center text-muted m-3 p-2 h-px-40 align-items-center" style="text-align: center">
-                          {{ __('Time to relax!') }}
-                          <br>
-                          {{ __('No new updates to worry about') }}
+                          Không có thông báo nào
                         </p>
                       </li>
                     @endforelse
@@ -201,7 +199,7 @@
                           @if (Auth::check())
                             {{ Auth::user()->name }}
                           @else
-                            !!No Name!!
+Không có tên
                           @endif
                         </span>
                         <small class="text-muted">{{ Auth::user()->getRoleNames()->first() }}</small>
@@ -215,14 +213,14 @@
                 {{-- <li>
                   <a class="dropdown-item" href="{{ Route::has('profile.show') ? route('profile.show') : 'javascript:void(0);' }}">
                     <i class="ti ti-user-check me-2 ti-sm"></i>
-                    <span class="align-middle">My Profile</span>
+                    <span class="align-middle">Hồ sơ của tôi</span>
                   </a>
                 </li> --}}
                 {{-- <li>
                   <a class="dropdown-item" href="javascript:void(0);">
                     <span class="d-flex align-items-center align-middle">
                       <i class="flex-shrink-0 ti ti-credit-card me-2 ti-sm"></i>
-                      <span class="flex-grow-1 align-middle">Billing</span>
+                      <span class="flex-grow-1 align-middle">Thanh toán</span>
                       <span class="flex-shrink-0 badge badge-center rounded-pill bg-label-danger w-px-20 h-px-20">2</span>
                     </span>
                   </a>
@@ -244,7 +242,7 @@
                   <li>
                     <a class="dropdown-item" href="{{ Route::has('login') ? route('login') : url('auth/login-basic') }}">
                       <i class='ti ti-login me-2'></i>
-                      <span class="align-middle">Login</span>
+                      <span class="align-middle">Đăng nhập</span>
                     </a>
                   </li>
                 @endif

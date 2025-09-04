@@ -1,14 +1,14 @@
 <table>
     <thead>
     <tr>
-        <th align=center style="font-size: 16px; font-weight: 600;">ID</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">Full Name</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">W/R</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">Leaves Balance</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">Delay Counter</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">Hourly Counter</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">Discounts</th>
-        <th align=center style="font-size: 16px; font-weight: 600;">Cash Discounts</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Mã số</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Họ và tên</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Tỷ lệ làm việc</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Số dư nghỉ phép</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Đếm đi muộn</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Đếm theo giờ</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Khấu trừ</th>
+        <th align=center style="font-size: 16px; font-weight: 600;">Khấu trừ tiền</th>
     </tr>
     </thead>
     <tbody>
@@ -28,10 +28,10 @@
         </tr>
         <tr>
           <td colspan=4></td>
-          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">#</td>
-          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">Date</td>
-          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">Rate</td>
-          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">Reason</td>
+          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">STT</td>
+          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">Ngày</td>
+          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">Tỷ lệ</td>
+          <td bgcolor=yellow align=center style="border: 3px solid #CCC; font-size: 16px">Lý do</td>
         </tr>
         @foreach($employee->discounts as $discount)
           <tr>

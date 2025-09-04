@@ -82,7 +82,7 @@
                             </div>
                           </div>
                         </td>
-                        <td>{{ $registration->vehicle->full_name ?? 'N/A' }}</td>
+                        <td>{{ $registration->vehicle->full_name ?? 'Không có' }}</td>
                         <td>{{ \Carbon\Carbon::parse($registration->departure_date)->format('d/m/Y') }}</td>
                         <td>{{ \Carbon\Carbon::parse($registration->return_date)->format('d/m/Y') }}</td>
                         <td>{{ Str::limit($registration->route, 30) }}</td>
@@ -212,11 +212,11 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Xe đăng ký</label>
-                <input type="text" class="form-control" value="{{ $registration->vehicle->full_name ?? 'N/A' }}" readonly>
+                <input type="text" class="form-control" value="{{ $registration->vehicle->full_name ?? 'Không có' }}" readonly>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Lái xe</label>
-                <input type="text" class="form-control" value="{{ $registration->driver_name ?? 'N/A' }}" readonly>
+                <input type="text" class="form-control" value="{{ $registration->driver_name ?? 'Không có' }}" readonly>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Ngày đi</label>
@@ -228,11 +228,11 @@
               </div>
               <div class="col-12">
                 <label class="form-label">Tuyến đường</label>
-                <input type="text" class="form-control" value="{{ $registration->route ?? 'N/A' }}" readonly>
+                <input type="text" class="form-control" value="{{ $registration->route ?? 'Không có' }}" readonly>
               </div>
               <div class="col-12">
                 <label class="form-label">Mục đích sử dụng</label>
-                <textarea class="form-control" rows="3" readonly>{{ $registration->purpose ?? 'N/A' }}</textarea>
+                <textarea class="form-control" rows="3" readonly>{{ $registration->purpose ?? 'Không có' }}</textarea>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Trạng thái</label>
@@ -271,6 +271,19 @@
   @endforeach
 
   @push('custom-scripts')
-    {{-- No additional scripts needed --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('download-file', (data) => {
+                console.log('Download event received:', data); // Debug log
+                if (data && data.filename) {
+                    const downloadUrl = '/download-temp-file?filename=' + encodeURIComponent(data.filename);
+                    console.log('Download URL:', downloadUrl); // Debug log
+                    window.location.href = downloadUrl;
+                } else {
+                    console.error('Invalid download data:', data);
+                }
+            });
+        });
+    </script>
   @endpush
 </div>

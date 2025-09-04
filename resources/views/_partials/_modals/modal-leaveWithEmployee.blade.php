@@ -8,7 +8,7 @@
     <div class="modal-dialog modal-xl modal-simple">
       <div class="modal-content">
         <div class="modal-body p-0">
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
           <div class="text-center mb-4">
             <h3 class="mb-2"></h3>
             <h3 class="mb-2">{{ $isEdit ? __('Update Record') : __('New Record') }}</h3>

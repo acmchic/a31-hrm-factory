@@ -1,15 +1,15 @@
 <table>
     <thead>
     <tr>
-        <th align=center style="font-size: 16px">ID</th>
-        <th align=center style="font-size: 16px">Full Name</th>
-        <th align=center style="font-size: 16px">W/R</th>
-        <th align=center style="font-size: 16px">Discounts</th>
-        <th align=center style="font-size: 16px">Cash Discounts</th>
+        <th align=center style="font-size: 16px">Mã số</th>
+        <th align=center style="font-size: 16px">Họ và tên</th>
+        <th align=center style="font-size: 16px">Tỷ lệ làm việc</th>
+        <th align=center style="font-size: 16px">Khấu trừ</th>
+        <th align=center style="font-size: 16px">Khấu trừ tiền</th>
         <th align=center style="font-size: 16px">-</th>
-        <th align=center style="font-size: 16px">Date</th>
-        <th align=center style="font-size: 16px">Rate</th>
-        <th align=center style="font-size: 16px">Reason</th>
+        <th align=center style="font-size: 16px">Ngày</th>
+        <th align=center style="font-size: 16px">Tỷ lệ</th>
+        <th align=center style="font-size: 16px">Lý do</th>
     </tr>
     </thead>
     <tbody>

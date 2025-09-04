@@ -8,7 +8,7 @@
     <div class="modal-dialog modal-xl modal-simple">
       <div class="modal-content p-0 p-md-5">
         <div class="modal-body">
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
           <div class="text-center mb-4">
             <h3 class="mb-2">{{ $isEdit ? 'Cập nhật đăng ký' : 'Đăng ký xe mới' }}</h3>
             <p class="text-muted">Vui lòng điền đầy đủ thông tin</p>
@@ -104,7 +104,7 @@
             
             <div class="col-12 text-center">
               <button type="submit" class="btn btn-primary me-sm-3 me-1">Đăng ký</button>
-              <button type="reset" class="btn btn-label-secondary btn-reset" data-bs-dismiss="modal" aria-label="Close">Hủy</button>
+              <button type="reset" class="btn btn-label-secondary btn-reset" data-bs-dismiss="modal" aria-label="Đóng">Hủy</button>
             </div>
           </form>
         </div>

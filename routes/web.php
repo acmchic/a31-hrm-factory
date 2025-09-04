@@ -178,4 +178,49 @@ Route::middleware([
 
 Route::get('/contact-us', ContactUs::class)->name('contact-us');
 
+// Download temporary files
+Route::get('/download-temp-file', function (\Illuminate\Http\Request $request) {
+    $filename = $request->query('filename');
+
+    \Log::info('Download temp file route called', [
+        'filename' => $filename,
+        'request_all' => $request->all()
+    ]);
+
+    if (!$filename) {
+        \Log::error('Download temp file: No filename provided');
+        abort(404);
+    }
+
+    $path = storage_path('app/temp/' . $filename);
+
+    \Log::info('Download temp file path', [
+        'path' => $path,
+        'exists' => file_exists($path)
+    ]);
+
+    if (!file_exists($path)) {
+        \Log::error('Download temp file: File not found', ['path' => $path]);
+        abort(404);
+    }
+
+    // Determine content type based on file extension
+    $contentType = 'application/octet-stream';
+    if (str_ends_with($filename, '.pdf')) {
+        $contentType = 'application/pdf';
+    } elseif (str_ends_with($filename, '.txt')) {
+        $contentType = 'text/plain; charset=utf-8';
+    }
+
+    \Log::info('Download temp file: Serving file', [
+        'filename' => $filename,
+        'content_type' => $contentType
+    ]);
+
+    return response()->file($path, [
+        'Content-Type' => $contentType,
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+    ])->deleteFileAfterSend(true);
+});
+
 Route::webhooks('/deploy');

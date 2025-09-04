@@ -5,7 +5,7 @@
     use Carbon\Carbon;
   @endphp
 
-  @section('title', 'Attendance - Leaves')
+  @section('title', 'Chấm công - Nghỉ phép')
 
   @section('vendor-style')
     <link rel="stylesheet" href="{{asset('assets/vendor/libs/flatpickr/flatpickr.css')}}"/>
@@ -81,14 +81,14 @@
                             </span>
                           </div>
                           <div>
-                            <h6 class="mb-0">{{ $user->name ?? 'Unknown' }}</h6>
-                            <small class="text-muted">{{ $user->email ?? 'N/A' }}</small>
+                            <h6 class="mb-0">{{ $user->name ?? 'Không xác định' }}</h6>
+                            <small class="text-muted">{{ $user->email ?? 'Không có' }}</small>
                           </div>
                         </div>
                       </td>
-                      <td>{{ $leave->leave->name ?? 'N/A' }}</td>
-                      <td>{{ $leave->from_date ? \Carbon\Carbon::parse($leave->from_date)->format('d-m-Y') : 'N/A' }}</td>
-                      <td>{{ $leave->to_date ? \Carbon\Carbon::parse($leave->to_date)->format('d-m-Y') : 'N/A' }}</td>
+                      <td>{{ $leave->leave->name ?? 'Không có' }}</td>
+                      <td>{{ $leave->from_date ? \Carbon\Carbon::parse($leave->from_date)->format('d-m-Y') : 'Không có' }}</td>
+                      <td>{{ $leave->to_date ? \Carbon\Carbon::parse($leave->to_date)->format('d-m-Y') : 'Không có' }}</td>
                       <td>{{ Str::limit($leave->note, 30) }}</td>
                       <td>
                         @php
@@ -222,36 +222,36 @@
                       </span>
                     </div>
                     <div>
-                      <h6 class="mb-0">{{ $user->name ?? 'Unknown' }}</h6>
-                      <small class="text-muted">{{ $user->username ?? 'N/A' }}</small>
+                      <h6 class="mb-0">{{ $user->name ?? 'Không xác định' }}</h6>
+                      <small class="text-muted">{{ $user->username ?? 'Không có' }}</small>
                     </div>
                   </div>
                 </div>
                 
                 <div class="col-12">
                   <label class="form-label">Loại nghỉ phép</label>
-                  <input type="text" class="form-control" value="{{ $leave->leave->name ?? 'N/A' }}" readonly>
+                  <input type="text" class="form-control" value="{{ $leave->leave->name ?? 'Không có' }}" readonly>
                 </div>
                 
                 <div class="col-md-6">
                   <label class="form-label">Từ ngày</label>
-                  <input type="text" class="form-control" value="{{ $leave->from_date ? \Carbon\Carbon::parse($leave->from_date)->format('d-m-Y') : 'N/A' }}" readonly>
+                  <input type="text" class="form-control" value="{{ $leave->from_date ? \Carbon\Carbon::parse($leave->from_date)->format('d-m-Y') : 'Không có' }}" readonly>
                 </div>
                 
                 <div class="col-md-6">
                   <label class="form-label">Đến ngày</label>
-                  <input type="text" class="form-control" value="{{ $leave->to_date ? \Carbon\Carbon::parse($leave->to_date)->format('d-m-Y') : 'N/A' }}" readonly>
+                  <input type="text" class="form-control" value="{{ $leave->to_date ? \Carbon\Carbon::parse($leave->to_date)->format('d-m-Y') : 'Không có' }}" readonly>
                 </div>
                 
                 @if($leave->start_at || $leave->end_at)
                 <div class="col-md-6">
                   <label class="form-label">Thời gian bắt đầu</label>
-                  <input type="text" class="form-control" value="{{ $leave->start_at ?? 'N/A' }}" readonly>
+                  <input type="text" class="form-control" value="{{ $leave->start_at ?? 'Không có' }}" readonly>
                 </div>
                 
                 <div class="col-md-6">
                   <label class="form-label">Thời gian kết thúc</label>
-                  <input type="text" class="form-control" value="{{ $leave->end_at ?? 'N/A' }}" readonly>
+                  <input type="text" class="form-control" value="{{ $leave->end_at ?? 'Không có' }}" readonly>
                 </div>
                 @endif
                 
@@ -267,7 +267,7 @@
                 
                 <div class="col-md-6">
                   <label class="form-label">Ngày tạo</label>
-                  <input type="text" class="form-control" value="{{ $leave->created_at ? $leave->created_at->format('d-m-Y H:i') : 'N/A' }}" readonly>
+                  <input type="text" class="form-control" value="{{ $leave->created_at ? $leave->created_at->format('d-m-Y H:i') : 'Không có' }}" readonly>
                 </div>
               </div>
             </form>

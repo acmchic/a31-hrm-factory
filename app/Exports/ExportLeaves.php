@@ -29,7 +29,7 @@ class ExportLeaves implements FromCollection, ShouldAutoSize, WithHeadings, With
     protected function generateHeadings()
     {
         if (count($this->data) === 0) {
-            return ['لا يوجد اجازات ضمن الفترة المحددة'];
+            return ['Không có đơn nghỉ phép nào trong khoảng thời gian đã chọn'];
         }
 
         return array_keys((array) $this->data[0]);
