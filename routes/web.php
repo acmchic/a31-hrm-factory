@@ -71,88 +71,34 @@ Route::middleware([
     Route::get('/attendance/leaves', Leaves::class)->name('attendance-leaves');
     Route::get('/attendance/leave-management', \App\Livewire\HumanResource\LeaveManagement::class)->name('attendance-leave-management');
     
-    // Download route for leave documents
+    // Download route for leave documents - Generate proper PDF
     Route::get('/leave/{id}/download', function($id) {
         $employeeLeave = \App\Models\EmployeeLeave::findOrFail($id);
         
         if (!$employeeLeave->digital_signature) {
-            abort(404, 'Document not found');
+            abort(404, 'Tài liệu không tồn tại');
         }
 
-        $user = \App\Models\User::find($employeeLeave->employee_id);
+        // Use DigitalSignatureService to generate proper PDF
+        $digitalSignatureService = new \App\Services\DigitalSignatureService();
         
-        // Create simple HTML for PDF conversion
-        $html = '
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Leave Request</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .info-table { width: 100%; border-collapse: collapse; }
-                .info-table td { padding: 10px; border: 1px solid #ddd; }
-                .label { font-weight: bold; background-color: #f5f5f5; width: 30%; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h2>LEAVE REQUEST FORM</h2>
-                <p>Request ID: #' . $employeeLeave->id . '</p>
-            </div>
+        try {
+            $pdfContent = $digitalSignatureService->generateLeaveRequestPDF($employeeLeave);
             
-            <table class="info-table">
-                <tr>
-                    <td class="label">Employee Name:</td>
-                    <td>' . ($user->name ?? 'N/A') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">Username:</td>
-                    <td>' . ($user->username ?? 'N/A') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">Leave Type:</td>
-                    <td>' . ($employeeLeave->leave->name ?? 'N/A') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">From Date:</td>
-                    <td>' . ($employeeLeave->from_date ? $employeeLeave->from_date->format('d/m/Y') : 'N/A') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">To Date:</td>
-                    <td>' . ($employeeLeave->to_date ? $employeeLeave->to_date->format('d/m/Y') : 'N/A') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">Note:</td>
-                    <td>' . ($employeeLeave->note ?: 'None') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">Status:</td>
-                    <td><strong>' . strtoupper($employeeLeave->status ?? 'pending') . '</strong></td>
-                </tr>
-                <tr>
-                    <td class="label">Created:</td>
-                    <td>' . ($employeeLeave->created_at ? $employeeLeave->created_at->format('d/m/Y H:i') : 'N/A') . '</td>
-                </tr>
-                <tr>
-                    <td class="label">Approved:</td>
-                    <td>' . ($employeeLeave->approved_at ? $employeeLeave->approved_at->format('d/m/Y H:i') : 'Not approved') . '</td>
-                </tr>
-            </table>
-            
-            <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
-                <strong>Digital Signature:</strong><br>
-                <small>' . $employeeLeave->digital_signature . '</small>
-            </div>
-        </body>
-        </html>';
-        
-        return response($html)
-            ->header('Content-Type', 'text/html; charset=utf-8')
-            ->header('Content-Disposition', 'attachment; filename="leave_request_' . $employeeLeave->id . '.html"');
+            return response($pdfContent)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="don_nghi_phep_' . $employeeLeave->id . '.pdf"');
+                
+        } catch (\Exception $e) {
+            abort(500, 'Lỗi tạo PDF: ' . $e->getMessage());
+        }
             
     })->name('leave.download');
+    
+    // Custom profile route with Vietnamese interface
+    Route::get('/user/profile', function() {
+        return view('profile.show-vietnamese');
+    })->name('profile.show');
 
     Route::group(['middleware' => ['role:Admin|HR']], function () {
         Route::prefix('structure')->group(function () {

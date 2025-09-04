@@ -34,6 +34,7 @@ class User extends Authenticatable
         'email_verified_at',
         'password',
         'profile_photo_path',
+        'signature_path',
     ];
 
     protected $hidden = ['password', 'remember_token', 'two_factor_recovery_codes', 'two_factor_secret'];

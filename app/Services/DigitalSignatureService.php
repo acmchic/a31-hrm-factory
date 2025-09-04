@@ -41,52 +41,228 @@ class DigitalSignatureService
     /**
      * Tạo PDF từ đơn nghỉ phép
      */
-    protected function generateLeaveRequestPDF(EmployeeLeave $leaveRequest)
+    public function generateLeaveRequestPDF(EmployeeLeave $leaveRequest)
     {
         try {
-            // Sử dụng TCPDF để tạo PDF
+            // Sử dụng TCPDF để tạo PDF tiếng Việt
             $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
             
-            // Set document information (avoid Vietnamese characters)
-            $pdf->SetCreator('HRMS System');
+            // Set document information
+            $pdf->SetCreator('Hệ thống HRMS');
             $pdf->SetAuthor('HRMS');
-            $pdf->SetTitle('Leave Request - ' . $leaveRequest->id);
-            $pdf->SetSubject('Leave Request');
+            $pdf->SetTitle('Đơn xin nghỉ phép - ' . $leaveRequest->id);
+            $pdf->SetSubject('Đơn xin nghỉ phép');
             
             // Set margins
-            $pdf->SetMargins(15, 15, 15);
-            $pdf->SetHeaderMargin(5);
-            $pdf->SetFooterMargin(10);
+            $pdf->SetMargins(20, 20, 20);
+            $pdf->SetAutoPageBreak(TRUE, 25);
             
             // Add a page
             $pdf->AddPage();
             
-            // Set font with UTF-8 support
+            // Set font for Vietnamese
             $pdf->SetFont('dejavusans', '', 12);
             
             // Add content
-            $html = $this->generateLeaveRequestHTML($leaveRequest);
+            $html = $this->generateVietnamesePDFContent($leaveRequest);
             $pdf->writeHTML($html, true, false, true, false, '');
+            
+            // Add signature if available
+            $this->addSignatureToPDF($pdf, $leaveRequest);
             
             return $pdf->Output('', 'S');
             
         } catch (\Exception $e) {
             Log::error('Error generating PDF: ' . $e->getMessage());
-            
-            // Return simple text response if PDF fails
-            $user = \App\Models\User::find($leaveRequest->employee_id);
-            $content = "LEAVE REQUEST #" . $leaveRequest->id . "\n\n";
-            $content .= "Employee: " . ($user->name ?? 'N/A') . "\n";
-            $content .= "Username: " . ($user->username ?? 'N/A') . "\n";
-            $content .= "Leave Type: " . ($leaveRequest->leave->name ?? 'N/A') . "\n";
-            $content .= "From: " . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . "\n";
-            $content .= "To: " . ($leaveRequest->to_date ? $leaveRequest->to_date->format('d/m/Y') : 'N/A') . "\n";
-            $content .= "Note: " . ($leaveRequest->note ?: 'N/A') . "\n";
-            $content .= "Status: " . ($leaveRequest->status ?? 'pending') . "\n";
-            $content .= "Created: " . ($leaveRequest->created_at ? $leaveRequest->created_at->format('d/m/Y H:i') : 'N/A') . "\n";
-            
-            return $content;
+            throw $e;
         }
+    }
+
+    /**
+     * Thêm chữ ký vào PDF
+     */
+    protected function addSignatureToPDF(\TCPDF $pdf, EmployeeLeave $leaveRequest)
+    {
+        if ($leaveRequest->approved_by) {
+            $approver = User::find($leaveRequest->approved_by);
+            
+            // Get signature path from database or session
+            $signaturePath = null;
+            try {
+                $signaturePath = $approver->signature_path ?? session('user_signature_path_' . $approver->id);
+            } catch (\Exception $e) {
+                $signaturePath = session('user_signature_path_' . $approver->id);
+            }
+            
+            if ($approver && $signaturePath) {
+                $fullSignaturePath = storage_path('app/public/' . $signaturePath);
+                
+                if (file_exists($fullSignaturePath)) {
+                    // Position signature at bottom right
+                    $pdf->SetXY(120, 250); // Adjust position as needed
+                    
+                    // Add signature image
+                    $pdf->Image($fullSignaturePath, '', '', 60, 30, '', '', '', false, 300, '', false, false, 0);
+                    
+                    // Add approval text below signature
+                    $pdf->SetXY(120, 280);
+                    $pdf->SetFont('dejavusans', 'B', 10);
+                    $pdf->Cell(60, 10, 'Người phê duyệt', 0, 1, 'C');
+                    $pdf->SetXY(120, 285);
+                    $pdf->SetFont('dejavusans', '', 9);
+                    $pdf->Cell(60, 10, $approver->name, 0, 1, 'C');
+                    $pdf->SetXY(120, 290);
+                    $pdf->Cell(60, 10, $leaveRequest->approved_at->format('d/m/Y H:i'), 0, 1, 'C');
+                }
+            }
+        }
+    }
+
+    /**
+     * Tạo nội dung PDF tiếng Việt đẹp
+     */
+    protected function generateVietnamesePDFContent(EmployeeLeave $leaveRequest)
+    {
+        $user = User::find($leaveRequest->employee_id);
+        $leave = $leaveRequest->leave;
+        
+        $html = '
+        <style>
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 3px solid #667eea;
+            }
+            .company-name {
+                font-size: 16px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            .document-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: #667eea;
+                margin-top: 10px;
+            }
+            .info-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            .info-table td {
+                padding: 12px;
+                border: 1px solid #dee2e6;
+                vertical-align: top;
+            }
+            .label {
+                font-weight: bold;
+                background-color: #f8f9fa;
+                width: 35%;
+                color: #495057;
+            }
+            .value {
+                background-color: white;
+                color: #212529;
+            }
+            .status-approved {
+                color: #28a745;
+                font-weight: bold;
+            }
+            .status-pending {
+                color: #ffc107;
+                font-weight: bold;
+            }
+            .footer {
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #dee2e6;
+            }
+        </style>
+        
+        <div class="header">
+            <div class="company-name">HỆ THỐNG QUẢN LÝ NHÂN SỰ - HRMS</div>
+            <div class="document-title">ĐƠN XIN NGHỈ PHÉP</div>
+            <div style="font-size: 12px; color: #6c757d; margin-top: 10px;">
+                Số: ' . str_pad($leaveRequest->id, 4, '0', STR_PAD_LEFT) . '/' . date('Y') . '/NP-HRMS
+            </div>
+        </div>
+        
+        <table class="info-table">
+            <tr>
+                <td class="label">Họ và tên nhân viên:</td>
+                <td class="value">' . ($user->name ?? 'N/A') . '</td>
+            </tr>
+            <tr>
+                <td class="label">Mã nhân viên:</td>
+                <td class="value">' . ($user->username ?? 'N/A') . '</td>
+            </tr>
+            <tr>
+                <td class="label">Loại nghỉ phép:</td>
+                <td class="value">' . ($leave->name ?? 'N/A') . '</td>
+            </tr>
+            <tr>
+                <td class="label">Thời gian nghỉ:</td>
+                <td class="value">
+                    Từ ngày: ' . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . '<br>
+                    Đến ngày: ' . ($leaveRequest->to_date ? $leaveRequest->to_date->format('d/m/Y') : 'N/A') . '
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Lý do nghỉ phép:</td>
+                <td class="value">' . ($leaveRequest->note ?: 'Không có ghi chú cụ thể') . '</td>
+            </tr>
+            <tr>
+                <td class="label">Ngày tạo đơn:</td>
+                <td class="value">' . ($leaveRequest->created_at ? $leaveRequest->created_at->format('d/m/Y H:i') : 'N/A') . '</td>
+            </tr>
+            <tr>
+                <td class="label">Trạng thái:</td>
+                <td class="value">
+                    <span class="status-' . ($leaveRequest->status ?? 'pending') . '">
+                        ' . match($leaveRequest->status ?? 'pending') {
+                            'pending' => 'CHỜ PHÊ DUYỆT',
+                            'approved' => 'ĐÃ PHÊ DUYỆT', 
+                            'rejected' => 'BỊ TỪ CHỐI',
+                            default => 'KHÔNG XÁC ĐỊNH'
+                        } . '
+                    </span>
+                </td>
+            </tr>';
+        
+        if ($leaveRequest->approved_at) {
+            $approver = User::find($leaveRequest->approved_by);
+            $html .= '
+            <tr>
+                <td class="label">Ngày phê duyệt:</td>
+                <td class="value">' . $leaveRequest->approved_at->format('d/m/Y H:i') . '</td>
+            </tr>
+            <tr>
+                <td class="label">Người phê duyệt:</td>
+                <td class="value">' . ($approver->name ?? 'N/A') . '</td>
+            </tr>';
+        }
+        
+        if ($leaveRequest->rejection_reason) {
+            $html .= '
+            <tr>
+                <td class="label">Lý do từ chối:</td>
+                <td class="value" style="color: #dc3545;">' . $leaveRequest->rejection_reason . '</td>
+            </tr>';
+        }
+        
+        $html .= '</table>';
+        
+        // Add footer
+        $html .= '
+        <div class="footer">
+            <p style="font-size: 10px; color: #6c757d; text-align: center;">
+                Đơn này được tạo tự động bởi Hệ thống HRMS vào ngày ' . now()->format('d/m/Y H:i') . '
+            </p>
+        </div>';
+        
+        return $html;
     }
 
     /**
