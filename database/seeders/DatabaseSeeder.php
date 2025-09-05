@@ -32,11 +32,18 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Create role
-        $adminRole = Role::create(['name' => 'Admin']);
+        // Create roles if they don't exist
+        $adminRole = Role::firstOrCreate(['name' => 'Admin']);
+        $hrRole = Role::firstOrCreate(['name' => 'HR']);
+        $ccRole = Role::firstOrCreate(['name' => 'CC']);
+        $amRole = Role::firstOrCreate(['name' => 'AM']);
+        $crRole = Role::firstOrCreate(['name' => 'CR']);
 
-        // Assign role
-        $admin = User::find(1);
-        $admin->assignRole($adminRole);
+        // Assign Admin role to first user
+        $admin = User::where('username', 'admin')->first();
+        if ($admin) {
+            $admin->assignRole($adminRole);
+            echo "Admin role assigned to user: {$admin->username}\n";
+        }
     }
 }

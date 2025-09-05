@@ -1,6 +1,5 @@
-version: '3'
 services:
-    laravel.test:
+    quanly.a31:
         build:
             context: ./docker/8.2
             dockerfile: Dockerfile
@@ -10,7 +9,7 @@ services:
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
-            - '${APP_PORT:-80}:80'
+            - '${APP_PORT:-8080}:80'
             - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER}'
@@ -23,17 +22,21 @@ services:
             - sail
         depends_on:
             - mysql
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.quanly-a31.rule=Host(`quanly.a31`)"
+            - "traefik.http.routers.quanly-a31.entrypoints=web"
     mysql:
         image: 'mysql/mysql-server:8.0'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
         environment:
-            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_PASSWORD: 'A31Factory'
             MYSQL_ROOT_HOST: '%'
-            MYSQL_DATABASE: '${DB_DATABASE}'
-            MYSQL_USER: '${DB_USERNAME}'
-            MYSQL_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+            MYSQL_DATABASE: 'a31_factory'
+            MYSQL_USER: 'a31_user'
+            MYSQL_PASSWORD: 'A31Factory'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 0
         volumes:
             - 'sail-mysql:/var/lib/mysql'
             - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
@@ -44,7 +47,7 @@ services:
                 - CMD
                 - mysqladmin
                 - ping
-                - '-p${DB_PASSWORD}'
+                - '-pA31Factory'
             retries: 3
             timeout: 5s
 networks:
