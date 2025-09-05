@@ -90,7 +90,7 @@
                           @php
                             $statusClass = match($registration->workflow_status ?? 'submitted') {
                               'submitted' => 'bg-label-warning',
-                              'dept_review' => 'bg-label-info', 
+                              'dept_review' => 'bg-label-info',
                               'director_review' => 'bg-label-info',
                               'approved' => 'bg-label-success',
                               'rejected' => 'bg-label-danger',
@@ -103,62 +103,60 @@
                         <td>
                           <div class="d-flex gap-1">
                             {{-- View detail button --}}
-                            <button wire:click.prevent="viewRegistrationDetail({{ $registration->id }})" 
-                                    data-bs-toggle="modal" 
+                            <button wire:click.prevent="viewRegistrationDetail({{ $registration->id }})"
+                                    data-bs-toggle="modal"
                                     data-bs-target="#detailModal{{ $registration->id }}"
-                                    class="btn btn-sm btn-info" 
+                                    class="btn btn-sm btn-info"
                                     title="Xem chi tiết">
                               <i class="ti ti-eye"></i>
                             </button>
-                            
+
                             {{-- Department Head Approval (Trưởng phòng Kế hoạch) --}}
                             @if($registration->workflow_status === 'submitted' && $registration->user_id != auth()->user()->id && auth()->user()->hasAnyRole(['Admin', 'HR', 'Trưởng phòng Kế hoạch']))
-                              <button wire:click.prevent="approveDepartment({{ $registration->id }})" 
-                                      class="btn btn-sm btn-success" 
+                              <button wire:click.prevent="approveDepartment({{ $registration->id }})"
+                                      class="btn btn-sm btn-success"
                                       title="Phê duyệt (Trưởng phòng)">
                                 <i class="ti ti-check"></i> Trưởng phòng duyệt
                               </button>
-                              <button wire:click.prevent="rejectRegistration({{ $registration->id }})" 
-                                      class="btn btn-sm btn-danger" 
+                              <button wire:click.prevent="rejectRegistration({{ $registration->id }})"
+                                      class="btn btn-sm btn-danger"
                                       title="Từ chối">
-                                <i class="ti ti-x"></i> Từ chối
-                              </button>
+                                <i class="ti ti-x"></i></button>
                             @endif
-                            
+
                             {{-- Director Approval (Ban Giám đốc) --}}
                             @if($registration->workflow_status === 'dept_review' && $registration->user_id != auth()->user()->id && auth()->user()->hasAnyRole(['Admin', 'Ban Giám đốc']))
-                              <button wire:click.prevent="approveDirector({{ $registration->id }})" 
-                                      class="btn btn-sm btn-primary" 
+                              <button wire:click.prevent="approveDirector({{ $registration->id }})"
+                                      class="btn btn-sm btn-primary"
                                       title="Phê duyệt (Thủ trưởng)">
                                 <i class="ti ti-check-double"></i> Thủ trưởng duyệt
                               </button>
-                              <button wire:click.prevent="rejectRegistration({{ $registration->id }})" 
-                                      class="btn btn-sm btn-danger" 
+                              <button wire:click.prevent="rejectRegistration({{ $registration->id }})"
+                                      class="btn btn-sm btn-danger"
                                       title="Từ chối">
-                                <i class="ti ti-x"></i> Từ chối
-                              </button>
+                                <i class="ti ti-x"></i></button>
                             @endif
-                            
+
                             {{-- Edit/Delete for own registrations - only when not approved --}}
                             @if($registration->user_id == auth()->user()->id && $registration->workflow_status === 'submitted')
-                              <button wire:click.prevent="showUpdateVehicleModal({{ $registration->id }})" 
-                                      data-bs-toggle="modal" 
+                              <button wire:click.prevent="showUpdateVehicleModal({{ $registration->id }})"
+                                      data-bs-toggle="modal"
                                       data-bs-target="#vehicleModal"
-                                      class="btn btn-sm btn-warning" 
+                                      class="btn btn-sm btn-warning"
                                       title="Chỉnh sửa">
                                 <i class="ti ti-edit"></i>
                               </button>
-                              <button wire:click.prevent="confirmDeleteRegistration({{ $registration->id }})" 
-                                      class="btn btn-sm btn-danger" 
+                              <button wire:click.prevent="confirmDeleteRegistration({{ $registration->id }})"
+                                      class="btn btn-sm btn-danger"
                                       title="Xóa đăng ký">
                                 <i class="ti ti-trash"></i>
                               </button>
                             @endif
-                            
+
                             {{-- Export signed PDF - available after department approval --}}
                             @if(in_array($registration->workflow_status, ['dept_review', 'approved']))
-                              <button wire:click.prevent="downloadVehiclePDF({{ $registration->id }})" 
-                                      class="btn btn-sm btn-success" 
+                              <button wire:click.prevent="downloadVehiclePDF({{ $registration->id }})"
+                                      class="btn btn-sm btn-success"
                                       title="Tải PDF đăng ký xe">
                                 <i class="ti ti-download"></i>
                               </button>
@@ -247,22 +245,22 @@
           <div class="modal-footer">
             {{-- Department Head Approval in modal --}}
             @if($registration->workflow_status === 'submitted' && $registration->user_id != auth()->user()->id && auth()->user()->hasAnyRole(['Admin', 'HR', 'Trưởng phòng Kế hoạch']))
-              <button wire:click="approveDepartment({{ $registration->id }})" 
-                      class="btn btn-success" 
+              <button wire:click="approveDepartment({{ $registration->id }})"
+                      class="btn btn-success"
                       data-bs-dismiss="modal">
                 <i class="ti ti-check me-1"></i>Trưởng phòng duyệt
               </button>
             @endif
-            
+
             {{-- Director Approval in modal --}}
             @if($registration->workflow_status === 'dept_review' && $registration->user_id != auth()->user()->id && auth()->user()->hasAnyRole(['Admin', 'Ban Giám đốc']))
-              <button wire:click="approveDirector({{ $registration->id }})" 
-                      class="btn btn-primary" 
+              <button wire:click="approveDirector({{ $registration->id }})"
+                      class="btn btn-primary"
                       data-bs-dismiss="modal">
                 <i class="ti ti-check-double me-1"></i>Thủ trưởng duyệt
               </button>
             @endif
-            
+
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
           </div>
         </div>

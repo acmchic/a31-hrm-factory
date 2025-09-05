@@ -55,7 +55,8 @@ echo [STEP] 3. Installing dependencies...
 REM Start Docker services
 echo [INFO] Starting Docker services...
 docker-compose down --remove-orphans 2>nul
-call vendor\bin\sail.bat up -d
+docker volume rm hrms_sail-mysql 2>nul
+docker-compose up -d
 
 REM Wait for MySQL to be ready
 echo [INFO] Waiting for MySQL to be ready...

@@ -2,140 +2,119 @@
   "menu": [
     {
       "url": "/dashboard",
-      "name": "Dashboard",
+      "name": "Bảng điều khiển",
       "icon": "menu-icon tf-icons ti ti-dashboard",
       "slug": "dashboard",
       "role": ["Admin", "AM", "CC", "CR", "HR", "Guest"]
     },
     {
-      "menuHeader": "Human resource",
-      "role": ["Admin", "HR", "CC", "AM", "Guest"]
-    },
-    {
-      "name": "Attendance",
-      "icon": "menu-icon tf-icons ti ti-door-exit",
-      "slug": "attendance",
+      "name": "Báo cáo quân số",
+      "icon": "menu-icon tf-icons ti ti-users",
+      "slug": "structure",
       "role": ["Admin", "HR", "CC", "AM", "Guest"],
       "submenu": [
         {
-          "url": "attendance/fingerprints",
-          "name": "Fingerprints",
-          "slug": "attendance-fingerprints",
-          "role": ["HR"]
+          "url": "structure/employees",
+          "name": "Danh sách quân nhân",
+          "slug": "structure-employees",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
         },
         {
+          "url": "structure/departments",
+          "name": "Đơn vị",
+          "slug": "structure-departments",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
+        },
+        {
+          "url": "structure/positions",
+          "name": "Chức vụ",
+          "slug": "structure-positions",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
+        },
+        {
+          "url": "structure/centers",
+          "name": "Trung tâm",
+          "slug": "structure-centers",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
+        }
+      ]
+    },
+    {
+      "name": "Đăng ký xe",
+      "icon": "menu-icon tf-icons ti ti-car",
+      "slug": "vehicle-registration",
+      "role": ["Admin", "HR", "CC", "AM", "Guest"],
+      "submenu": [
+        {
+          "url": "/vehicles/registration",
+          "name": "Danh sách đăng ký",
+          "slug": "vehicle-registration-list",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
+        },
+        {
+          "url": "/vehicles/create",
+          "name": "Tạo đăng ký mới",
+          "slug": "vehicle-registration-create",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
+        }
+      ]
+    },
+    {
+      "name": "Xin nghỉ phép",
+      "icon": "menu-icon tf-icons ti ti-calendar-time",
+      "slug": "leave-management",
+      "role": ["Admin", "HR", "CC", "AM", "Guest"],
+      "submenu": [
+        {
           "url": "attendance/leaves",
-          "name": "Leaves",
+          "name": "Danh sách nghỉ phép",
           "slug": "attendance-leaves",
           "role": ["Admin", "HR", "CC", "AM", "Guest"]
         },
         {
-          "url": "/vehicles/registration",
-          "name": "Đăng ký xe",
-          "slug": "vehicle-registration",
+          "url": "attendance/leaves/create",
+          "name": "Tạo đơn nghỉ phép",
+          "slug": "attendance-leaves-create",
+          "role": ["Admin", "HR", "CC", "AM", "Guest"]
+        },
+        {
+          "url": "/holidays",
+          "name": "Ngày nghỉ lễ",
+          "slug": "holidays",
           "role": ["Admin", "HR", "CC", "AM", "Guest"]
         }
       ]
     },
     {
-      "name": "Structure",
-      "icon": "menu-icon tf-icons ti ti-hierarchy",
-      "slug": "structure",
-      "role": ["HR"],
-      "submenu": [
-        {
-          "url": "structure/centers",
-          "name": "Centers",
-          "slug": "structure-centers",
-          "role": ["HR"]
-        },
-        {
-          "url": "structure/departments",
-          "name": "Departments",
-          "slug": "structure-departments",
-          "role": ["HR"]
-        },
-        {
-          "url": "structure/positions",
-          "name": "Positions",
-          "slug": "structure-positions",
-          "role": ["HR"]
-        },
-        {
-          "url": "structure/employees",
-          "name": "Employees",
-          "slug": "structure-employees",
-          "role": ["HR"]
-        }
-      ]
-    },
-    {
-      "name": "Messages",
-      "icon": "menu-icon tf-icons ti ti-message-dots",
-      "slug": "messages",
-      "role": ["HR", "CC"],
-      "submenu": [
-        {
-          "url": "messages/bulk",
-          "name": "Bulk",
-          "slug": "messages-bulk",
-          "role": ["HR", "CC"]
-        },
-        {
-          "url": "messages/personal",
-          "name": "Personal",
-          "slug": "messages-personal",
-          "role": ["HR"]
-        }
-      ]
-    },
-    {
-      "url": "/discounts",
-      "name": "Discounts",
-      "icon": "menu-icon tf-icons ti ti-coin",
-      "slug": "discounts",
-      "role": ["HR"]
-    },
-    {
-      "url": "/holidays",
-      "name": "Holidays",
-      "icon": "menu-icon tf-icons ti ti-christmas-tree",
-      "slug": "holidays",
-      "role": ["HR"]
-    },
-    {
-      "url": "/statistics",
-      "name": "Statistics",
-      "icon": "menu-icon tf-icons ti ti-device-desktop-analytics",
-      "slug": "statistics",
-      "role": ["HR"]
-    },
-    {
-      "name": "Settings",
+      "name": "Cài đặt hệ thống",
       "icon": "menu-icon tf-icons ti ti-adjustments-alt",
       "slug": "settings",
       "role": ["Admin"],
       "submenu": [
         {
           "url": "settings/users",
-          "name": "Users",
-          "slug": "settings-users"
+          "name": "Quản lý người dùng",
+          "slug": "settings-users",
+          "role": ["Admin"]
         },
         {
           "url": "settings/roles",
-          "name": "Roles",
-          "slug": "settings-roles"
+          "name": "Phân quyền",
+          "slug": "settings-roles",
+          "role": ["Admin"]
         },
         {
-          "url": "settings/permissions",
-          "name": "Permissions",
-          "slug": "settings-permissions"
+          "url": "/statistics",
+          "name": "Thống kê",
+          "slug": "statistics",
+          "role": ["Admin"]
         },
         {
           "url": "log-viewer",
-          "name": "Logs",
+          "name": "Nhật ký hệ thống",
           "slug": "settings-logs",
-          "target": "_blank"
+          "target": "_blank",
+          "role": ["Admin"]
         }
       ]
     }

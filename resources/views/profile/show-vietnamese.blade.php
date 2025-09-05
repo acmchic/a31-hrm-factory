@@ -84,7 +84,7 @@ $breadcrumbs = [['link' => 'home', 'name' => 'Trang chủ'], ['link' => 'javascr
           Hồ sơ cá nhân
         </h2>
         <p class="mb-0 opacity-75">
-          Quản lý thông tin cá nhân và chữ ký điện tử của bạn
+          Quản lý thông tin cá nhân
         </p>
       </div>
       <div class="col-md-4 text-md-end">

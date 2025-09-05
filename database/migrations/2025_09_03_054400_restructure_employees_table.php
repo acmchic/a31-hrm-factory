@@ -12,25 +12,39 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            // Bỏ các trường không cần thiết
-            $table->dropColumn([
-                'first_name',
-                'last_name', 
-                'father_name',
-                'mother_name',
-                'birth_and_place',
-                'degree',
-                'notes'
-            ]);
+            // Check and drop columns if they exist
+            if (Schema::hasColumn('employees', 'first_name')) {
+                $table->dropColumn('first_name');
+            }
+            if (Schema::hasColumn('employees', 'last_name')) {
+                $table->dropColumn('last_name');
+            }
+            if (Schema::hasColumn('employees', 'father_name')) {
+                $table->dropColumn('father_name');
+            }
+            if (Schema::hasColumn('employees', 'mother_name')) {
+                $table->dropColumn('mother_name');
+            }
+            if (Schema::hasColumn('employees', 'birth_and_place')) {
+                $table->dropColumn('birth_and_place');
+            }
+            if (Schema::hasColumn('employees', 'degree')) {
+                $table->dropColumn('degree');
+            }
+            if (Schema::hasColumn('employees', 'notes')) {
+                $table->dropColumn('notes');
+            }
             
-            // Đổi tên national_number thành CCCD
-            $table->renameColumn('national_number', 'CCCD');
-            
-            // Đổi tên mobile thành phone
-            $table->renameColumn('mobile', 'phone');
-            
-            // Đổi tên full_name thành name
-            $table->renameColumn('full_name', 'name');
+            // Rename columns if they exist
+            if (Schema::hasColumn('employees', 'national_number')) {
+                $table->renameColumn('national_number', 'CCCD');
+            }
+            if (Schema::hasColumn('employees', 'mobile')) {
+                $table->renameColumn('mobile', 'phone');
+            }
+            if (Schema::hasColumn('employees', 'full_name')) {
+                $table->renameColumn('full_name', 'name');
+            }
         });
     }
 

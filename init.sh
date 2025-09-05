@@ -68,14 +68,52 @@ if [ ! -f .env ]; then
     cp .env.example .env 2>/dev/null || echo "No .env.example found, .env already created"
 fi
 
-# Update .env with new database settings
-print_status "Updating .env with A31 Factory settings..."
-sed -i.bak 's/^APP_NAME=.*/APP_NAME="HRMS A31 Factory"/' .env
-sed -i.bak 's/^APP_URL=.*/APP_URL=http:\/\/quanly.a31:8080/' .env
-sed -i.bak 's/^DB_DATABASE=.*/DB_DATABASE=a31_factory/' .env
-sed -i.bak 's/^DB_USERNAME=.*/DB_USERNAME=a31_user/' .env
-sed -i.bak 's/^DB_PASSWORD=.*/DB_PASSWORD=A31Factory/' .env
-sed -i.bak 's/^APP_TIMEZONE=.*/APP_TIMEZONE="Asia\/Ho_Chi_Minh"/' .env
+# Create fresh .env with A31 Factory settings
+print_status "Creating fresh .env with A31 Factory settings..."
+cat > .env << 'ENVEOF'
+APP_NAME="HRMS A31 Factory"
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://quanly.a31:8080
+APP_TIMEZONE="Asia/Ho_Chi_Minh"
+
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=a31_factory
+DB_USERNAME=a31_user
+DB_PASSWORD=A31Factory
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=smtp
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="noreply@quanly.a31"
+MAIL_FROM_NAME="${APP_NAME}"
+
+SAIL_XDEBUG_MODE=develop,debug
+SAIL_SKIP_CHECKS=true
+ENVEOF
 
 print_status "✓ Environment configured"
 
@@ -85,7 +123,8 @@ print_step "3. Installing dependencies..."
 # Start Docker services
 print_status "Starting Docker services..."
 docker-compose down --remove-orphans 2>/dev/null || true
-./vendor/bin/sail up -d
+docker volume rm hrms_sail-mysql 2>/dev/null || true
+docker-compose up -d
 
 # Wait for MySQL to be ready
 print_status "Waiting for MySQL to be ready..."
@@ -93,57 +132,79 @@ sleep 15
 
 # Install Composer dependencies
 print_status "Installing PHP dependencies..."
-./vendor/bin/sail composer install --optimize-autoloader --no-dev
+docker exec hrms-quanly.a31-1 composer install --optimize-autoloader --no-dev
 
 # Generate application key
 print_status "Generating application key..."
-./vendor/bin/sail artisan key:generate
+docker exec hrms-quanly.a31-1 php artisan key:generate
 
 # Install NPM dependencies and build assets
 print_status "Installing Node.js dependencies..."
-./vendor/bin/sail npm install
+docker exec hrms-quanly.a31-1 npm install
 
 print_status "Building frontend assets..."
-./vendor/bin/sail npm run production
+docker exec hrms-quanly.a31-1 npm run production
 
 print_status "✓ Dependencies installed"
 
 # Step 4: Database setup
 print_step "4. Setting up database..."
 
-# Run migrations
-print_status "Running database migrations..."
-./vendor/bin/sail artisan migrate --force
+# Create database and import from backup
+print_status "Creating database and importing backup..."
+docker exec hrms-mysql-1 mysql -ua31_user -pA31Factory -e "CREATE DATABASE IF NOT EXISTS a31_factory;"
 
-# Seed database
-print_status "Seeding database with initial data..."
-./vendor/bin/sail artisan db:seed --force
+# Check if backup file exists and import
+if [ -f "storage/db/hrms_database_2025_09_05_02_59_50.sql" ]; then
+    print_status "Importing database from backup with UTF-8 encoding..."
+    docker exec hrms-mysql-1 mysql -ua31_user -pA31Factory -e "DROP DATABASE IF EXISTS a31_factory; CREATE DATABASE a31_factory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    docker exec -i hrms-mysql-1 bash -c "mysql -ua31_user -pA31Factory --default-character-set=utf8mb4 a31_factory" < storage/db/hrms_database_2025_09_05_02_59_50.sql
+    print_status "✓ Database imported from backup with UTF-8"
+else
+    print_status "No backup found, running fresh migrations..."
+    docker exec hrms-quanly.a31-1 php artisan migrate:fresh --seed --force
+fi
 
-# Verify admin user creation
-print_status "Verifying admin user..."
-./vendor/bin/sail artisan tinker --execute="
-\$admin = \App\Models\User::where('username', 'admin')->first();
-if (\$admin) {
-    echo 'Admin user found: ' . \$admin->name . ' (' . \$admin->username . ')' . PHP_EOL;
-    echo 'Roles: ' . \$admin->getRoleNames()->implode(', ') . PHP_EOL;
+# Create/verify admin user with correct password
+print_status "Creating fresh admin user..."
+docker exec hrms-quanly.a31-1 php artisan tinker --execute="
+// Delete any existing admin user
+\$oldAdmin = \App\Models\User::where('username', 'admin')->first();
+if (\$oldAdmin) {
+    \$oldAdmin->delete();
+    echo 'Old admin user deleted' . PHP_EOL;
+}
+
+// Create fresh admin user with correct password hash
+\$admin = \App\Models\User::create([
+    'name' => 'Administrator A31',
+    'username' => 'admin',
+    'password' => \Illuminate\Support\Facades\Hash::make('admin'),
+    'profile_photo_path' => 'profile-photos/.default-photo.jpg',
+]);
+
+// Assign Admin role
+\$adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Admin']);
+\$admin->assignRole(\$adminRole);
+
+echo 'Fresh admin user created:' . PHP_EOL;
+echo 'Username: admin' . PHP_EOL;
+echo 'Password: admin' . PHP_EOL;
+echo 'Name: ' . \$admin->name . PHP_EOL;
+echo 'Roles: ' . \$admin->getRoleNames()->implode(', ') . PHP_EOL;
+
+// Verify password works
+if (\Illuminate\Support\Facades\Hash::check('admin', \$admin->password)) {
+    echo 'Password verification: SUCCESS ✓' . PHP_EOL;
 } else {
-    echo 'Creating admin user manually...' . PHP_EOL;
-    \$admin = \App\Models\User::create([
-        'name' => 'Administrator A31',
-        'employee_id' => '1',
-        'username' => 'admin',
-        'password' => bcrypt('admin'),
-        'profile_photo_path' => 'profile-photos/.default-photo.jpg',
-    ]);
-    \$adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Admin']);
-    \$admin->assignRole(\$adminRole);
-    echo 'Admin user created: admin/admin with Admin role' . PHP_EOL;
+    echo 'Password verification: FAILED ✗' . PHP_EOL;
 }
 "
 
-# Import vehicles data
-print_status "Importing vehicles data..."
-./vendor/bin/sail artisan tinker --execute="
+# Import vehicles data (skip if backup was imported)
+if [ ! -f "storage/db/hrms_database_2025_09_05_02_59_50.sql" ]; then
+    print_status "Importing vehicles data..."
+    docker exec hrms-quanly.a31-1 php artisan tinker --execute="
 // Load and import vehicles
 \$jsonData = file_get_contents('storage/app/public/vehicles/vehicles.json');
 \$vehiclesData = json_decode(\$jsonData, true);
@@ -204,6 +265,9 @@ foreach(\$xeNang as \$xe) {
 
 echo 'Vehicles imported: ' . \App\Models\Vehicle::count() . PHP_EOL;
 "
+else
+    print_status "Vehicles data already imported from backup"
+fi
 
 print_status "✓ Database setup completed"
 
@@ -212,14 +276,14 @@ print_step "5. Final configuration..."
 
 # Create storage link
 print_status "Creating storage symlink..."
-./vendor/bin/sail artisan storage:link
+docker exec hrms-quanly.a31-1 php artisan storage:link
 
 # Clear caches
 print_status "Clearing application caches..."
-./vendor/bin/sail artisan cache:clear
-./vendor/bin/sail artisan config:clear
-./vendor/bin/sail artisan route:clear
-./vendor/bin/sail artisan view:clear
+docker exec hrms-quanly.a31-1 php artisan cache:clear
+docker exec hrms-quanly.a31-1 php artisan config:clear
+docker exec hrms-quanly.a31-1 php artisan route:clear
+docker exec hrms-quanly.a31-1 php artisan view:clear
 
 # Set permissions
 print_status "Setting file permissions..."
