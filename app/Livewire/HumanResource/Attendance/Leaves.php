@@ -72,7 +72,11 @@ class Leaves extends Component
 
     public function mount()
     {
-        $this->selectedEmployeeId = Auth::user()->id;
+        $currentEmployee = Employee::where('user_id', Auth::id())->first();
+        if (!$currentEmployee) {
+            $currentEmployee = Employee::where('name', Auth::user()->name)->first();
+        }
+        $this->selectedEmployeeId = $currentEmployee?->id;
         $this->selectedEmployee = Auth::user(); // Use current user as selected employee
 
         $this->leaveTypes = Leave::all();
@@ -83,7 +87,8 @@ class Leaves extends Component
 
         $currentDate = Carbon::now();
         $previousMonth = $currentDate->copy()->subMonth();
-        $this->dateRange = $previousMonth->format('Y-n-1').' to '.$currentDate;
+        $nextMonth = $currentDate->copy()->addMonth();
+        $this->dateRange = $previousMonth->format('Y-n-1').' to '.$nextMonth->format('Y-n-t');
     }
 
     public function getRemainingLeaveDays()
@@ -130,9 +135,22 @@ class Leaves extends Component
             $this->fromDate = $dates[0];
             $this->toDate = $dates[1];
         }
+        
+        // Guard against invalid or missing dates
+        if (empty($this->fromDate) || empty($this->toDate)) {
+            $currentDate = Carbon::now();
+            $previousMonth = $currentDate->copy()->subMonth();
+            $nextMonth = $currentDate->copy()->addMonth();
+            $this->fromDate = $previousMonth->format('Y-m-01');
+            $this->toDate = $nextMonth->format('Y-m-t');
+        }
 
         // Get leaves based on user role
         $user = Auth::user();
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
+        if (!$currentEmployee) {
+            $currentEmployee = Employee::where('name', $user->name)->first();
+        }
         
         $query = EmployeeLeave::with(['leave', 'employee'])
             ->when($this->selectedLeaveId, function ($query) {
@@ -141,30 +159,37 @@ class Leaves extends Component
             ->whereBetween('from_date', [$this->fromDate, $this->toDate])
             ->orderBy('from_date');
 
+        $ownerIds = array_values(array_filter([
+            $currentEmployee?->id,
+            Auth::id(),
+        ]));
+
         if ($user->hasAnyRole(['Admin', 'HR'])) {
             // Admin/HR can see all leaves
             // No additional filter needed
         } elseif ($user->hasAnyRole(['Head of Department', 'CC'])) {
             // Department heads can see leaves from their department + own leaves
-            $userDepartment = Employee::where('name', $user->name)->first()?->department_id;
+            $userDepartment = $currentEmployee?->department_id;
             if ($userDepartment) {
-                $query->where(function($q) use ($user, $userDepartment) {
-                    $q->where('employee_id', $user->id) // Own leaves
+                $query->where(function($q) use ($ownerIds, $userDepartment) {
+                    $q->whereIn('employee_id', $ownerIds) // Own leaves (employee.id or user.id fallback)
                       ->orWhereHas('employee', function($eq) use ($userDepartment) {
                           $eq->where('department_id', $userDepartment);
                       });
                 });
             } else {
-                $query->where('employee_id', $user->id); // Only own leaves
+                $query->whereIn('employee_id', $ownerIds); // Only own leaves
             }
         } else {
             // Regular employees only see their own leaves
-            $query->where('employee_id', $user->id);
+            $query->whereIn('employee_id', $ownerIds);
         }
 
-        // If not admin/HR, only show unchecked leaves
+        // If not admin/HR, show pending and unchecked leaves (is_checked null or 0)
         if (!$user->hasAnyRole(['Admin', 'HR'])) {
-            $query->where('is_checked', 0);
+            $query->where(function($q) {
+                $q->whereNull('is_checked')->orWhere('is_checked', 0);
+            });
         }
 
         return $query->paginate(7);
@@ -173,7 +198,9 @@ class Leaves extends Component
     public function submitLeave()
     {
         // Ensure selectedEmployeeId is always set to current user ID
-        $this->selectedEmployeeId = Auth::user()->id;
+        $this->selectedEmployeeId = Employee::where('user_id', Auth::id())->value('id')
+            ?? Employee::where('name', Auth::user()->name)->value('id')
+            ?? (string) Auth::id();
 
         $this->validate(
             [
@@ -261,13 +288,27 @@ class Leaves extends Component
         $this->reset('isEdit', 'newLeaveInfo');
         
         // Always set to current user ID
-        $this->selectedEmployeeId = Auth::user()->id;
+        $this->selectedEmployeeId = Employee::where('user_id', Auth::id())->value('id')
+            ?? Employee::where('name', Auth::user()->name)->value('id')
+            ?? (string) Auth::id();
     }
 
     public function createLeave()
     {
+        // Resolve employee_id robustly to avoid null inserts
+        $resolvedEmployeeId = $this->selectedEmployeeId
+            ?? Employee::where('user_id', Auth::id())->value('id')
+            ?? Employee::where('name', Auth::user()->name)->value('id')
+            ?? (Auth::user()->employee_id ?? null);
+
+        if (empty($resolvedEmployeeId)) {
+            session()->flash('error', 'Tài khoản chưa liên kết nhân sự. Vui lòng liên hệ quản trị.');
+            $this->dispatch('toastr', type: 'error', message: 'Không xác định được nhân sự của bạn!');
+            return;
+        }
+
         $employeeLeave = EmployeeLeave::create([
-            'employee_id' => $this->selectedEmployeeId,
+            'employee_id' => $resolvedEmployeeId,
             'leave_id' => $this->newLeaveInfo['LeaveId'],
             'from_date' => $this->newLeaveInfo['fromDate'],
             'to_date' => $this->newLeaveInfo['toDate'],
@@ -470,6 +511,7 @@ class Leaves extends Component
     protected function canApproveLeave(EmployeeLeave $employeeLeave)
     {
         $user = Auth::user();
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
         
         // Admin và HR có thể phê duyệt tất cả
         if ($user->hasRole(['Admin', 'HR'])) {
@@ -478,7 +520,7 @@ class Leaves extends Component
 
         // Head of department có thể phê duyệt đơn của nhân viên trong phòng mình
         if ($user->hasRole(['Head of Department', 'CC'])) {
-            $userDepartment = Employee::where('name', $user->name)->first()?->department_id;
+            $userDepartment = $currentEmployee?->department_id;
             $leaveDepartment = $employeeLeave->employee?->department_id;
             
             if ($userDepartment && $userDepartment == $leaveDepartment) {
