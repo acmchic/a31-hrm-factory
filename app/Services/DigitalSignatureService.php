@@ -51,7 +51,7 @@ class DigitalSignatureService
             $leaveDays = \Carbon\Carbon::parse($leaveRequest->from_date)->diffInDays(\Carbon\Carbon::parse($leaveRequest->to_date)) + 1;
             $newUsed = $employee->annual_leave_used + $leaveDays;
             $newBalance = max(0, $employee->annual_leave_total - $newUsed);
-            
+
             $employee->update([
                 'annual_leave_used' => $newUsed,
                 'annual_leave_balance' => $newBalance
@@ -67,32 +67,43 @@ class DigitalSignatureService
         try {
             // Sử dụng TCPDF để tạo PDF tiếng Việt
             $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-            
+
             // Set document information
             $pdf->SetCreator('Hệ thống HRMS');
             $pdf->SetAuthor('HRMS');
             $pdf->SetTitle('Đơn xin nghỉ phép - ' . $leaveRequest->id);
             $pdf->SetSubject('Đơn xin nghỉ phép');
-            
+
             // Set margins
             $pdf->SetMargins(20, 20, 20);
             $pdf->SetAutoPageBreak(TRUE, 25);
-            
+
             // Add a page
             $pdf->AddPage();
-            
+
+            // Add centered logo
+            $logoPath = public_path('assets/img/logo/logo.png');
+            if (file_exists($logoPath)) {
+                // width 28mm, centered (A4 width 210mm)
+                $logoWidth = 28;
+                $centerX = (210 - $logoWidth) / 2;
+                $pdf->Image($logoPath, $centerX, 12, $logoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                // Adjust cursor below logo
+                $pdf->SetY(28);
+            }
+
             // Set font for Vietnamese
             $pdf->SetFont('dejavusans', '', 12);
-            
+
             // Add content
             $html = $this->generateVietnamesePDFContent($leaveRequest);
             $pdf->writeHTML($html, true, false, true, false, '');
-            
+
             // Add signature if available
             $this->addSignatureToPDF($pdf, $leaveRequest);
-            
+
             return $pdf->Output('', 'S');
-            
+
         } catch (\Exception $e) {
             Log::error('Error generating PDF: ' . $e->getMessage());
             throw $e;
@@ -106,23 +117,23 @@ class DigitalSignatureService
     {
         if ($leaveRequest->approved_by) {
             $approver = User::find($leaveRequest->approved_by);
-            
+
             // Get signature path from database
             $signaturePath = $approver->signature_path;
-            
+
             if ($approver && $signaturePath) {
                 $fullSignaturePath = storage_path('app/public/' . $signaturePath);
-                
+
                 if (file_exists($fullSignaturePath)) {
                     // Add approval text above signature
                     $pdf->SetXY(120, 160);
                     $pdf->SetFont('dejavusans', 'B', 10);
                     $pdf->Cell(60, 10, 'Người phê duyệt', 0, 1, 'C');
-                    
+
                     // Add signature image
                     $pdf->SetXY(130, 170);
                     $pdf->Image($fullSignaturePath, '', '', 40, 20, '', '', '', false, 300, '', false, false, 0);
-                    
+
                     // Add approver name below signature
                     $pdf->SetXY(120, 195);
                     $pdf->SetFont('dejavusans', '', 9);
@@ -142,7 +153,7 @@ class DigitalSignatureService
     {
         $user = User::find($leaveRequest->employee_id);
         $leave = $leaveRequest->leave;
-        
+
         $html = '
         <style>
             .header {
@@ -200,12 +211,12 @@ class DigitalSignatureService
                 border-top: 1px solid #dee2e6;
             }
         </style>
-        
+
         <div class="header">
             <div class="company-name">NHÀ MÁY A31 - QUÂN CHỦNG PK-KQ</div>
             <div class="document-title">ĐƠN XIN NGHỈ PHÉP</div>
         </div>
-        
+
         <table class="info-table">
             <tr>
                 <td class="label"><br>&nbsp;&nbsp;Họ và tên nhân viên:&nbsp;&nbsp;<br>&nbsp;</td>
@@ -240,14 +251,14 @@ class DigitalSignatureService
                     <span class="status-' . ($leaveRequest->status ?? 'pending') . '">
                         ' . match($leaveRequest->status ?? 'pending') {
                             'pending' => 'CHỜ PHÊ DUYỆT',
-                            'approved' => 'ĐÃ PHÊ DUYỆT', 
+                            'approved' => 'ĐÃ PHÊ DUYỆT',
                             'rejected' => 'BỊ TỪ CHỐI',
                             default => 'KHÔNG XÁC ĐỊNH'
                         } . '
                     </span>&nbsp;&nbsp;<br>&nbsp;
                 </td>
             </tr>';
-        
+
         if ($leaveRequest->approved_at) {
             $approver = User::find($leaveRequest->approved_by);
             $html .= '
@@ -260,7 +271,7 @@ class DigitalSignatureService
                 <td class="value">' . ($approver->name ?? 'N/A') . '</td>
             </tr>';
         }
-        
+
         if ($leaveRequest->rejection_reason) {
             $html .= '
             <tr>
@@ -268,11 +279,11 @@ class DigitalSignatureService
                 <td class="value" style="color: #dc3545;">' . $leaveRequest->rejection_reason . '</td>
             </tr>';
         }
-        
+
         $html .= '</table>';
-        
+
         // No footer needed
-        
+
         return $html;
     }
 
@@ -283,19 +294,19 @@ class DigitalSignatureService
     {
         $user = \App\Models\User::find($leaveRequest->employee_id);
         $leave = $leaveRequest->leave;
-        
+
         // Use safe encoding for Vietnamese characters
         $employeeName = htmlspecialchars($user->name ?? 'N/A', ENT_QUOTES, 'UTF-8');
         $username = htmlspecialchars($user->username ?? 'N/A', ENT_QUOTES, 'UTF-8');
         $leaveTypeName = htmlspecialchars($leave->name ?? 'N/A', ENT_QUOTES, 'UTF-8');
         $note = htmlspecialchars($leaveRequest->note ?: 'N/A', ENT_QUOTES, 'UTF-8');
         $status = htmlspecialchars($leaveRequest->status ?? 'pending', ENT_QUOTES, 'UTF-8');
-        
+
         return "
         <div style='text-align: center; margin-bottom: 20px;'>
             <h2>DON XIN NGHI PHEP</h2>
         </div>
-        
+
         <table style='width: 100%; border-collapse: collapse; margin-bottom: 20px;'>
             <tr>
                 <td style='width: 30%; padding: 8px; border: 1px solid #ddd;'><strong>Ho va ten:</strong></td>
@@ -322,7 +333,7 @@ class DigitalSignatureService
                 <td style='padding: 8px; border: 1px solid #ddd;'>{$note}</td>
             </tr>
         </table>
-        
+
         <div style='margin-top: 30px;'>
             <p><strong>Trang thai:</strong> {$status}</p>
             <p><strong>Ngay phe duyet:</strong> " . ($leaveRequest->approved_at ? $leaveRequest->approved_at->format('d/m/Y H:i') : 'Chua phe duyet') . "</p>
@@ -351,7 +362,7 @@ class DigitalSignatureService
 
         // Export as simple text file to avoid UTF-8 issues
         $user = \App\Models\User::find($leaveRequest->employee_id);
-        
+
         $content = "DON XIN NGHI PHEP #" . $leaveRequest->id . "\n";
         $content .= "================================\n\n";
         $content .= "Ho va ten: " . ($user->name ?? 'N/A') . "\n";
@@ -364,10 +375,10 @@ class DigitalSignatureService
         $content .= "Ngay tao: " . ($leaveRequest->created_at ? $leaveRequest->created_at->format('d/m/Y H:i') : 'N/A') . "\n";
         $content .= "Ngay phe duyet: " . ($leaveRequest->approved_at ? $leaveRequest->approved_at->format('d/m/Y H:i') : 'Chua phe duyet') . "\n\n";
         $content .= "CHU KY SO: " . $leaveRequest->digital_signature . "\n";
-        
+
         // Clean content to avoid encoding issues
         $content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
-        
+
         return response($content)
             ->header('Content-Type', 'text/plain; charset=utf-8')
             ->header('Content-Disposition', 'attachment; filename="leave_request_' . $leaveRequest->id . '_signed.txt"');
@@ -384,19 +395,19 @@ class DigitalSignatureService
 
         try {
             $pdfContent = base64_decode($leaveRequest->digital_signature);
-            
+
             // Lưu tạm để verify
             $tempPath = storage_path('app/temp/verify_' . $leaveRequest->id . '.pdf');
             Storage::disk('local')->put('temp/verify_' . $leaveRequest->id . '.pdf', $pdfContent);
-            
+
             // Verify signature
             $isValid = $this->pdfSigner->verifyPdf($tempPath);
-            
+
             // Xóa file tạm
             Storage::disk('local')->delete('temp/verify_' . $leaveRequest->id . '.pdf');
-            
+
             return $isValid;
-            
+
         } catch (\Exception $e) {
             Log::error('Error verifying signature: ' . $e->getMessage());
             return false;
@@ -411,32 +422,41 @@ class DigitalSignatureService
         try {
             // Sử dụng TCPDF để tạo PDF tiếng Việt (same as leaves)
             $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-            
+
             // Set document information
             $pdf->SetCreator('Hệ thống HRMS');
             $pdf->SetAuthor('HRMS');
             $pdf->SetTitle('Đăng ký xe công - ' . $registration->id);
             $pdf->SetSubject('Đăng ký xe công');
-            
+
             // Set margins
             $pdf->SetMargins(20, 20, 20);
             $pdf->SetAutoPageBreak(TRUE, 25);
-            
+
             // Add a page
             $pdf->AddPage();
-            
+
+            // Add centered logo
+            $logoPath = public_path('assets/img/logo/logo.png');
+            if (file_exists($logoPath)) {
+                $logoWidth = 28;
+                $centerX = (210 - $logoWidth) / 2;
+                $pdf->Image($logoPath, $centerX, 12, $logoWidth, 0, '', '', '', false, 300, '', false, false, 0);
+                $pdf->SetY(28);
+            }
+
             // Set font for Vietnamese
             $pdf->SetFont('dejavusans', '', 12);
-            
+
             // Add content
             $html = $this->generateVehicleRegistrationHTMLContent($registration);
             $pdf->writeHTML($html, true, false, true, false, '');
-            
+
             // Add signature if available
             $this->addVehicleSignaturesToPDF($pdf, $registration);
-            
+
             return $pdf->Output('', 'S');
-            
+
         } catch (\Exception $e) {
             Log::error('Error generating vehicle registration PDF: ' . $e->getMessage());
             throw $e;
@@ -450,7 +470,7 @@ class DigitalSignatureService
     {
         $user = $registration->user;
         $vehicle = $registration->vehicle;
-        
+
         $html = '
         <style>
             .header {
@@ -500,12 +520,12 @@ class DigitalSignatureService
                 border-top: 1px solid #dee2e6;
             }
         </style>
-        
+
         <div class="header">
             <div class="company-name">NHÀ MÁY A31 - QUÂN CHỦNG PK-KQ</div>
-            <div class="document-title">ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG</div>
+            <div class="document-title">ĐƠN ĐĂNG KÝ SỬ DỤNG XE</div>
         </div>
-        
+
         <table class="info-table">
             <tr>
                 <td class="label"><br>&nbsp;&nbsp;Người đăng ký:&nbsp;&nbsp;<br>&nbsp;</td>
@@ -543,7 +563,7 @@ class DigitalSignatureService
                 <td class="value"><br>&nbsp;&nbsp;' . \Carbon\Carbon::parse($registration->created_at)->format('d/m/Y H:i') . '&nbsp;&nbsp;<br>&nbsp;</td>
             </tr>
         </table>';
-        
+
         return $html;
     }
 
@@ -552,17 +572,24 @@ class DigitalSignatureService
      */
     private function addVehicleSignaturesToPDF($pdf, $registration)
     {
-        $yPosition = 160;
-        
+        // Place signatures just below the table content, but not above a minimum baseline
+        $yPosition = max($pdf->GetY() + 12, 160);
+
+        // If too close to the bottom, start a new page
+        if ($yPosition > 240) {
+            $pdf->AddPage();
+            $yPosition = 40;
+        }
+
         // Department signature (left side)
         if ($registration->digital_signature_dept) {
             $deptSignature = json_decode($registration->digital_signature_dept, true);
-            
+
             // Add department title
             $pdf->SetXY(30, $yPosition);
             $pdf->SetFont('dejavusans', 'B', 10);
             $pdf->Cell(60, 10, 'Trưởng phòng Kế hoạch', 0, 1, 'C');
-            
+
             if (isset($deptSignature['signature_path']) && !empty($deptSignature['signature_path'])) {
                 $signaturePath = storage_path('app/public/' . $deptSignature['signature_path']);
                 if (file_exists($signaturePath)) {
@@ -570,25 +597,28 @@ class DigitalSignatureService
                     $pdf->Image($signaturePath, 40, $yPosition + 15, 40, 20, '', '', '', false, 300, '', false, false, 0);
                 }
             }
-            
-            // Add approver name below signature
+
+            // Add approval date (above) and approver name (below)
             $pdf->SetXY(30, $yPosition + 40);
             $pdf->SetFont('dejavusans', '', 9);
-            $pdf->Cell(60, 10, $deptSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
-            $pdf->SetXY(30, $yPosition + 45);
-            $pdf->SetFont('dejavusans', '', 8);
-            $pdf->Cell(60, 10, $deptSignature['approved_at'] ?? 'N/A', 0, 1, 'C');
+            $deptApprovedAt = isset($deptSignature['approved_at']) && !empty($deptSignature['approved_at'])
+                ? \Carbon\Carbon::parse($deptSignature['approved_at'])->format('d/m/Y')
+                : 'N/A';
+            $pdf->Cell(60, 6, $deptApprovedAt, 0, 1, 'C');
+            $pdf->SetXY(30, $yPosition + 47);
+            $pdf->SetFont('dejavusans', '', 9);
+            $pdf->Cell(60, 6, $deptSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
         }
-        
+
         // Director signature (right side)
         if ($registration->digital_signature_director) {
             $directorSignature = json_decode($registration->digital_signature_director, true);
-            
+
             // Add director title
             $pdf->SetXY(120, $yPosition);
             $pdf->SetFont('dejavusans', 'B', 10);
             $pdf->Cell(60, 10, 'Ban Giám đốc', 0, 1, 'C');
-            
+
             if (isset($directorSignature['signature_path']) && !empty($directorSignature['signature_path'])) {
                 $signaturePath = storage_path('app/public/' . $directorSignature['signature_path']);
                 if (file_exists($signaturePath)) {
@@ -596,14 +626,17 @@ class DigitalSignatureService
                     $pdf->Image($signaturePath, 130, $yPosition + 15, 40, 20, '', '', '', false, 300, '', false, false, 0);
                 }
             }
-            
-            // Add approver name below signature
+
+            // Add approval date (above) and approver name (below)
             $pdf->SetXY(120, $yPosition + 40);
             $pdf->SetFont('dejavusans', '', 9);
-            $pdf->Cell(60, 10, $directorSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
-            $pdf->SetXY(120, $yPosition + 45);
-            $pdf->SetFont('dejavusans', '', 8);
-            $pdf->Cell(60, 10, $directorSignature['approved_at'] ?? 'N/A', 0, 1, 'C');
+            $dirApprovedAt = isset($directorSignature['approved_at']) && !empty($directorSignature['approved_at'])
+                ? \Carbon\Carbon::parse($directorSignature['approved_at'])->format('d/m/Y')
+                : 'N/A';
+            $pdf->Cell(60, 6, $dirApprovedAt, 0, 1, 'C');
+            $pdf->SetXY(120, $yPosition + 47);
+            $pdf->SetFont('dejavusans', '', 9);
+            $pdf->Cell(60, 6, $directorSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
         }
     }
 
@@ -645,7 +678,7 @@ class DigitalSignatureService
         $user = $registration->user;
         $vehicle = $registration->vehicle;
 
-        $content = "=== ĐƠN ĐĂNG KÝ SỬ DỤNG XE CÔNG ===\n\n" .
+        $content = "=== ĐƠN ĐĂNG KÝ SỬ DỤNG XE ===\n\n" .
                    "Số: " . str_pad($registration->id, 4, '0', STR_PAD_LEFT) . "/ĐKXC\n\n" .
                    "Người đăng ký: " . ($user->name ?? 'N/A') . "\n" .
                    "Đơn vị: Phòng Kế hoạch\n" .
