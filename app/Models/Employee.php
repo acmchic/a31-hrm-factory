@@ -26,7 +26,6 @@ class Employee extends Model
         'rank_code',
         'position_id',
         'department_id',
-        'center_id',
         'start_date',
         'quit_date',
         'CCCD',
@@ -34,7 +33,6 @@ class Employee extends Model
         'gender',
         'address',
         'is_active',
-        'contract_id',
         'max_leave_allowed',
         'annual_leave_balance',
         'annual_leave_total',
@@ -67,10 +65,6 @@ class Employee extends Model
         return $this->hasMany(Fingerprint::class);
     }
 
-    public function contract(): BelongsTo
-    {
-        return $this->belongsTo(Contract::class);
-    }
 
     public function position(): BelongsTo
     {
@@ -82,10 +76,6 @@ class Employee extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function center(): BelongsTo
-    {
-        return $this->belongsTo(Center::class);
-    }
 
     public function discounts(): HasMany
     {

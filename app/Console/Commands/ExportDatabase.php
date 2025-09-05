@@ -13,7 +13,7 @@ class ExportDatabase extends Command
      *
      * @var string
      */
-    protected $signature = 'db:export {--path=storage/db/} {--format=sql}';
+    protected $signature = 'db:export {--path=storage/db/} {--format=all}';
 
     /**
      * The description of the console command.
@@ -29,9 +29,9 @@ class ExportDatabase extends Command
     {
         $path = $this->option('path');
         $format = $this->option('format');
-        
+
         // Ensure directory exists
-        $fullPath = storage_path($path);
+        $fullPath = str_starts_with($path, 'storage') ? base_path($path) : storage_path(trim($path, '/'));
         if (!file_exists($fullPath)) {
             mkdir($fullPath, 0755, true);
         }
@@ -40,9 +40,12 @@ class ExportDatabase extends Command
 
         try {
             if ($format === 'sql') {
-                $this->exportToSQL($fullPath);
-            } else {
-                $this->exportToJSON($fullPath);
+                $this->exportToSQL($fullPath, 'a31factory.sql');
+            } elseif ($format === 'json') {
+                $this->exportToJSON($fullPath, 'a31factory.json');
+            } else { // all
+                $this->exportToSQL($fullPath, 'a31factory.sql');
+                $this->exportToJSON($fullPath, 'a31factory.json');
             }
 
             $this->info('Export database hoàn thành!');
@@ -51,10 +54,10 @@ class ExportDatabase extends Command
         }
     }
 
-    private function exportToSQL($path)
+    private function exportToSQL($path, $targetFilename = null)
     {
-        // Fix path issue - remove duplicate storage
-        $filename = str_replace('storage/storage/', 'storage/', $path) . '/hrms_database_' . date('Y_m_d_H_i_s') . '.sql';
+        $filename = rtrim($path, '/');
+        $filename .= '/' . ($targetFilename ?: ('hrms_database_' . date('Y_m_d_H_i_s') . '.sql'));
         $sql = '';
 
         // Get database name
@@ -110,10 +113,10 @@ class ExportDatabase extends Command
         $this->info("SQL file saved: {$filename}");
     }
 
-    private function exportToJSON($path)
+    private function exportToJSON($path, $targetFilename = null)
     {
-        // Fix path issue - remove duplicate storage
-        $filename = str_replace('storage/storage/', 'storage/', $path) . '/hrms_database_' . date('Y_m_d_H_i_s') . '.json';
+        $filename = rtrim($path, '/');
+        $filename .= '/' . ($targetFilename ?: ('hrms_database_' . date('Y_m_d_H_i_s') . '.json'));
         $data = [];
 
         // Get database name

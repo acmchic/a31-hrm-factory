@@ -101,24 +101,11 @@
             @enderror
           </div>
           
-          <div class="col-md-4 col-12 mb-4">
-            <label class="form-label w-100">{{ __('Trung tâm') }}</label>
-            <select wire:model.defer="employeeInfo.centerId" class="form-select @error('employeeInfo.centerId') is-invalid @enderror">
-              <option value="">{{ __('Select..') }}</option>
-              @foreach($centers as $center)
-              <option value="{{ $center->id }}">{{ $center->name }}</option>
-              @endforeach
-            </select>
-            @error('employeeInfo.centerId')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
-            @enderror
-          </div>
+          {{-- Centers removed --}}
           
           <div class="col-md-4 col-12 mb-4">
             <label class="form-label w-100">{{ __('Ngày sinh') }}</label>
-            <input wire:model.defer="employeeInfo.dateOfBirth" type="date" class="form-control @error('employeeInfo.dateOfBirth') is-invalid @enderror">
+            <input id="dobInput" wire:model.defer="employeeInfo.dateOfBirth" type="text" placeholder="dd-mm-yy" class="form-control @error('employeeInfo.dateOfBirth') is-invalid @enderror">
             @error('employeeInfo.dateOfBirth')
             <div class="invalid-feedback">
                 {{ $message }}
@@ -128,7 +115,7 @@
           
           <div class="col-md-4 col-12 mb-4">
             <label class="form-label w-100">{{ __('Ngày nhập ngũ') }}</label>
-            <input wire:model.defer="employeeInfo.enlistDate" type="date" class="form-control @error('employeeInfo.enlistDate') is-invalid @enderror">
+            <input id="enlistInput" wire:model.defer="employeeInfo.enlistDate" type="text" placeholder="dd-mm-yy" class="form-control @error('employeeInfo.enlistDate') is-invalid @enderror">
             @error('employeeInfo.enlistDate')
             <div class="invalid-feedback">
                 {{ $message }}
@@ -157,5 +144,13 @@
 </div>
 
 @push('custom-scripts')
-
+  <script src="{{ asset('assets/vendor/libs/flatpickr/flatpickr.js') }}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.flatpickr) {
+        flatpickr('#dobInput', { dateFormat: 'd-m-y', allowInput: true });
+        flatpickr('#enlistInput', { dateFormat: 'd-m-y', allowInput: true });
+      }
+    });
+  </script>
 @endpush

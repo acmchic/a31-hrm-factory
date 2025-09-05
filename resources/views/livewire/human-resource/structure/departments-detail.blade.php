@@ -39,7 +39,7 @@
                 <th>{{ __('Name') }}</th>
                 <th>{{ __('Position') }}</th>
                 <th>{{ __('Rank Code') }}</th>
-                <th>{{ __('Center') }}</th>
+                <th>{{ __('Department') }}</th>
                 <th>{{ __('Actions') }}</th>
               </tr>
             </thead>
@@ -92,8 +92,8 @@
                     @endif
                   </td>
                   <td>
-                    @if($employee->center)
-                      <span class="badge bg-label-info">{{ $employee->center->name }}</span>
+                    @if($employee->department)
+                      <span class="badge bg-label-info">{{ $employee->department->name }}</span>
                     @else
                       <span class="text-muted">-</span>
                     @endif

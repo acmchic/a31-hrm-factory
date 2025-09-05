@@ -1,3 +1,4 @@
-.flatpickr-calendar {
+#employeeModal .flatpickr-calendar,
+#timelineModal .flatpickr-calendar {
   direction: ltr;
 }

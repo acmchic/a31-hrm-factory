@@ -2,7 +2,6 @@
 
 namespace App\Livewire\HumanResource\Structure;
 
-use App\Models\Center;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
@@ -14,8 +13,6 @@ use Livewire\Component;
 
 class EmployeeInfo extends Component
 {
-    public $centers;
-
     public $departments;
 
     public $positions;
@@ -33,8 +30,6 @@ class EmployeeInfo extends Component
     public $isEdit = false;
 
     public $confirmedId;
-
-    public $selectedCenter;
 
     public $selectedDepartment;
 
@@ -55,7 +50,6 @@ class EmployeeInfo extends Component
             $this->employeeAssets = collect();
         }
         
-        $this->centers = Center::all();
         $this->departments = Department::all();
         $this->positions = Position::all();
     }
@@ -64,7 +58,7 @@ class EmployeeInfo extends Component
     public function render()
     {
         if ($this->employee) {
-            $this->employeeTimelines = Timeline::with(['center', 'department', 'position'])
+            $this->employeeTimelines = Timeline::with(['department', 'position'])
                 ->where('employee_id', $this->employee->id)
                 ->orderBy('id', 'desc')
                 ->get();
@@ -109,12 +103,10 @@ class EmployeeInfo extends Component
     // 👉 Submit timeline
     public function submitTimeline()
     {
-        $this->employeeTimelineInfo['centerId'] = $this->selectedCenter;
         $this->employeeTimelineInfo['departmentId'] = $this->selectedDepartment;
         $this->employeeTimelineInfo['positionId'] = $this->selectedPosition;
 
         $this->validate([
-            'employeeTimelineInfo.centerId' => 'required',
             'employeeTimelineInfo.departmentId' => 'required',
             'employeeTimelineInfo.positionId' => 'required',
             'employeeTimelineInfo.startDate' => 'required',
@@ -127,7 +119,7 @@ class EmployeeInfo extends Component
     // 👉 Store timeline
     public function showStoreTimelineModal()
     {
-        $this->reset('isEdit', 'selectedCenter', 'selectedDepartment', 'selectedPosition', 'employeeTimelineInfo');
+        $this->reset('isEdit', 'selectedDepartment', 'selectedPosition', 'employeeTimelineInfo');
         $this->dispatch('clearSelect2Values');
     }
 
@@ -147,7 +139,6 @@ class EmployeeInfo extends Component
 
             Timeline::create([
                 'employee_id' => $this->employee->id,
-                'center_id' => $this->employeeTimelineInfo['centerId'],
                 'department_id' => $this->employeeTimelineInfo['departmentId'],
                 'position_id' => $this->employeeTimelineInfo['positionId'],
                 'start_date' => $this->employeeTimelineInfo['startDate'],
@@ -178,7 +169,6 @@ class EmployeeInfo extends Component
 
         $this->timeline = $timeline;
 
-        $this->employeeTimelineInfo['centerId'] = $timeline->center_id;
         $this->employeeTimelineInfo['departmentId'] = $timeline->department_id;
         $this->employeeTimelineInfo['positionId'] = $timeline->position_id;
         $this->employeeTimelineInfo['startDate'] = $timeline->start_date;
@@ -188,7 +178,6 @@ class EmployeeInfo extends Component
 
         $this->dispatch(
             'setSelect2Values',
-            centerId: $timeline->center_id,
             departmentId: $timeline->department_id,
             positionId: $timeline->position_id
         );
@@ -197,7 +186,6 @@ class EmployeeInfo extends Component
     public function updateTimeline()
     {
         $this->timeline->update([
-            'center_id' => $this->employeeTimelineInfo['centerId'],
             'department_id' => $this->employeeTimelineInfo['departmentId'],
             'position_id' => $this->employeeTimelineInfo['positionId'],
             'start_date' => $this->employeeTimelineInfo['startDate'],

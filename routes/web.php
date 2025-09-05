@@ -70,6 +70,10 @@ Route::middleware([
 
     // Leave management available for all authenticated users
     Route::get('/attendance/leaves', Leaves::class)->name('attendance-leaves');
+    // Backward-compatible create URL (opens the same page/component)
+    Route::get('/attendance/leaves/create', function() {
+        return redirect()->route('attendance-leaves');
+    })->name('attendance-leaves-create');
     Route::get('/attendance/leave-management', \App\Livewire\HumanResource\LeaveManagement::class)->name('attendance-leave-management');
     
     // Download route for leave documents - Generate proper PDF

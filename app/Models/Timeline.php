@@ -13,7 +13,6 @@ class Timeline extends Model
     use CreatedUpdatedDeletedBy, HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'center_id',
         'department_id',
         'position_id',
         'employee_id',
@@ -24,11 +23,6 @@ class Timeline extends Model
     ];
 
     // 👉 Links
-    public function center(): BelongsTo
-    {
-        return $this->belongsTo(Center::class);
-    }
-
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);

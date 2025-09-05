@@ -20,7 +20,7 @@
         <thead>
           <tr>
             <th>{{ __('Name') }}</th>
-            <th>{{ __('Center') }}</th>
+            <th>{{ __('Applies To') }}</th>
             <th>{{ __('Date Range') }}</th>
             <th>{{ __('Note') }}</th>
             <th>{{ __('Actions') }}</th>
@@ -31,9 +31,7 @@
           <tr>
             <td><strong>{{ $holiday->name }}</strong></td>
             <td style="text-wrap: balance;">
-                @foreach($holiday->centers as $center)
-                    <span class="badge bg-label-info">{{ $center->name }}</span>
-                @endforeach
+                <span class="badge bg-label-info">{{ __('All') }}</span>
             </td>
             <td><span class="badge bg-label-success me-1">{{ $holiday->from_date . ' --> ' . $holiday->to_date }}</span></td>
             <td><strong>{{ $holiday->note }}</strong></td>

@@ -85,7 +85,7 @@
                     </div>
                     <div class="user-profile-info mx-3">
                       <a href="{{ route('structure-employees-info', $employee->id) }}">
-                        <h6 style="margin-bottom: 0.5rem;">{{ $employee->full_name }} <span class="badge rounded-pill bg-label-secondary">{{ 'W/R: ' . $employee->contract->work_rate.'%' }}</h6>
+                        <h6 style="margin-bottom: 0.5rem;">{{ $employee->full_name }} <span class="badge rounded-pill bg-label-secondary">{{ 'W/R: ' . (($employee->work_rate ?? 100)) . '%' }}</h6>
                       </a>
                       <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2">
                         <li class="list-inline-item">
@@ -97,9 +97,7 @@
                         {{-- <li class="list-inline-item">
                           <i class="ti ti-building"></i> {{ $employee->current_department }}
                         </li> --}}
-                        <li class="list-inline-item">
-                          <i class="ti ti-building-community"></i> {{ $employee->current_center }}
-                        </li>
+                        {{-- Center removed --}}
                         <li class="list-inline-item">
                           <i class="ti ti-calendar"></i> {{ $employee->join_at }}
                           {{-- <i class="ti ti-calendar"></i> {{ 'Joined ' . $employee->join_at }} --}}

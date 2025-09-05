@@ -2,11 +2,10 @@
 
 namespace App\Livewire\HumanResource\Structure;
 
-use App\Models\Contract;
 use App\Models\Employee;
+use App\Models\EmployeeLeave;
 use App\Models\Department;
 use App\Models\Position;
-use App\Models\Center;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -23,10 +22,8 @@ class Employees extends Component
     // 👉 Variables
     public $searchTerm = null;
 
-    public $contracts;
     public $departments;
     public $positions;
-    public $centers;
 
     public $employee;
 
@@ -40,19 +37,25 @@ class Employees extends Component
     public $importFile;
     public $showImportModal = false;
 
+    // Today leave modal
+    public $todayLeaveEmployees = [];
+
     // 👉 Mount
     public function mount()
     {
-        $this->contracts = Contract::all();
         $this->departments = Department::all();
         $this->positions = Position::all();
-        $this->centers = Center::all();
     }
 
     // 👉 Render
     public function render()
     {
-        $employees = Employee::with(['position', 'department', 'center'])
+        $employees = Employee::with(['position', 'department'])
+            ->addSelect([
+                'department_name' => Department::select('name')
+                    ->whereColumn('departments.id', 'employees.department_id')
+                    ->limit(1)
+            ])
             ->where(function($query) {
                 $query->where('id', 'like', '%'.$this->searchTerm.'%')
                     ->orWhere('name', 'like', '%'.$this->searchTerm.'%')
@@ -66,9 +69,49 @@ class Employees extends Component
             })
             ->paginate(20);
 
+        // Stats
+        $totalEmployees = Employee::count();
+        $today = date('Y-m-d');
+        $onDayLeave = EmployeeLeave::whereDate('from_date', '<=', $today)
+            ->whereDate('to_date', '>=', $today)
+            ->where('status', 'approved')
+            ->distinct('employee_id')
+            ->count('employee_id');
+        $activeEmployees = max($totalEmployees - $onDayLeave, 0);
+
         return view('livewire.human-resource.structure.employees', [
             'employees' => $employees,
+            'totalEmployees' => $totalEmployees,
+            'activeEmployees' => $activeEmployees,
+            'onDayLeave' => $onDayLeave,
+            'departmentMap' => Department::pluck('name', 'id')->toArray(),
         ]);
+    }
+
+    // 👉 Open today's leave modal
+    public function openTodayLeaveModal()
+    {
+        $today = date('Y-m-d');
+        $employeeIds = EmployeeLeave::whereDate('from_date', '<=', $today)
+            ->whereDate('to_date', '>=', $today)
+            ->where('status', 'approved')
+            ->pluck('employee_id')
+            ->unique()
+            ->toArray();
+
+        $this->todayLeaveEmployees = Employee::with('department')
+            ->whereIn('id', $employeeIds)
+            ->orderBy('name')
+            ->get()
+            ->map(function ($e) {
+                return [
+                    'name' => $e->name,
+                    'department' => $e->department->name ?? ($e->current_department ?? '-')
+                ];
+            })
+            ->toArray();
+
+        $this->dispatch('openModal', elementId: '#todayLeaveModal');
     }
 
     // 👉 Submit employee
@@ -79,13 +122,12 @@ class Employees extends Component
             'employeeInfo.rankCode' => 'required',
             'employeeInfo.positionId' => 'required',
             'employeeInfo.departmentId' => 'required',
-            'employeeInfo.centerId' => 'required',
-            'employeeInfo.dateOfBirth' => 'required|date',
-            'employeeInfo.enlistDate' => 'nullable|date',
-            'employeeInfo.CCCD' => 'required',
+            'employeeInfo.dateOfBirth' => 'required|string',
+            'employeeInfo.enlistDate' => 'nullable|string',
+            'employeeInfo.CCCD' => 'nullable',
             'employeeInfo.phone' => 'required',
             'employeeInfo.gender' => 'required',
-            'employeeInfo.address' => 'required',
+            'employeeInfo.address' => 'nullable',
         ]);
 
         $this->isEdit ? $this->editEmployee() : $this->addEmployee();
@@ -104,15 +146,13 @@ class Employees extends Component
             'rank_code' => $this->employeeInfo['rankCode'],
             'position_id' => $this->employeeInfo['positionId'],
             'department_id' => $this->employeeInfo['departmentId'],
-            'center_id' => $this->employeeInfo['centerId'],
-            'date_of_birth' => $this->employeeInfo['dateOfBirth'],
-            'enlist_date' => $this->employeeInfo['enlistDate'],
+            'date_of_birth' => $this->parseInputDate($this->employeeInfo['dateOfBirth']),
+            'enlist_date' => $this->parseInputDate($this->employeeInfo['enlistDate'] ?? null),
             'CCCD' => $this->employeeInfo['CCCD'],
             'phone' => $this->employeeInfo['phone'],
             'gender' => $this->employeeInfo['gender'],
             'address' => $this->employeeInfo['address'],
             'is_active' => true,
-            'contract_id' => $this->employeeInfo['contractId'] ?? Contract::first()->id,
         ]);
 
         $this->dispatch('closeModal', elementId: '#employeeModal');
@@ -132,9 +172,8 @@ class Employees extends Component
         $this->employeeInfo['rankCode'] = $employee->rank_code;
         $this->employeeInfo['positionId'] = $employee->position_id;
         $this->employeeInfo['departmentId'] = $employee->department_id;
-        $this->employeeInfo['centerId'] = $employee->center_id;
-        $this->employeeInfo['dateOfBirth'] = $employee->date_of_birth;
-        $this->employeeInfo['enlistDate'] = $employee->enlist_date;
+        $this->employeeInfo['dateOfBirth'] = $this->formatInputDate($employee->date_of_birth);
+        $this->employeeInfo['enlistDate'] = $this->formatInputDate($employee->enlist_date);
         $this->employeeInfo['CCCD'] = $employee->CCCD;
         $this->employeeInfo['phone'] = $employee->phone;
         $this->employeeInfo['gender'] = $employee->gender;
@@ -148,9 +187,8 @@ class Employees extends Component
             'rank_code' => $this->employeeInfo['rankCode'],
             'position_id' => $this->employeeInfo['positionId'],
             'department_id' => $this->employeeInfo['departmentId'],
-            'center_id' => $this->employeeInfo['centerId'],
-            'date_of_birth' => $this->employeeInfo['dateOfBirth'],
-            'enlist_date' => $this->employeeInfo['enlistDate'],
+            'date_of_birth' => $this->parseInputDate($this->employeeInfo['dateOfBirth']),
+            'enlist_date' => $this->parseInputDate($this->employeeInfo['enlistDate'] ?? null),
             'CCCD' => $this->employeeInfo['CCCD'],
             'phone' => $this->employeeInfo['phone'],
             'gender' => $this->employeeInfo['gender'],
@@ -203,31 +241,6 @@ class Employees extends Component
             DB::table('employees')->delete();
             DB::table('users')->delete();
             
-            // Tạo Center mặc định
-            $center = Center::firstOrCreate(
-                ['name' => 'Trung tâm Quân sự'],
-                [
-                    'code' => 'TC', 
-                    'description' => 'Trung tâm Quân sự chính',
-                    'start_work_hour' => '08:00:00',
-                    'end_work_hour' => '17:00:00',
-                    'weekends' => ['Thứ 7', 'Chủ nhật'],
-                    'is_active' => true,
-                    'created_by' => 'System',
-                    'updated_by' => 'System'
-                ]
-            );
-            
-            // Tạo Contract mặc định nếu chưa có
-            $contract = Contract::firstOrCreate(
-                ['name' => 'Hợp đồng quân đội'],
-                [
-                    'description' => 'Hợp đồng mặc định cho quân nhân',
-                    'work_rate' => 100,
-                    'created_by' => 'System',
-                    'updated_by' => 'System'
-                ]
-            );
             
             // LUÔN LUÔN tạo superadmin trước khi import
             $superAdmin = User::updateOrCreate(
@@ -266,7 +279,7 @@ class Employees extends Component
                 // Xử lý members trực tiếp trong department
                 if (isset($deptData['members'])) {
                     foreach ($deptData['members'] as $member) {
-                        $this->createEmployeeFromJson($member, $department->id, $center->id, $contract->id);
+                        $this->createEmployeeFromJson($member, $department->id);
                         $importedCount++;
                     }
                 }
@@ -275,7 +288,7 @@ class Employees extends Component
                 if (isset($deptData['teams'])) {
                     foreach ($deptData['teams'] as $team) {
                         foreach ($team['members'] as $member) {
-                            $this->createEmployeeFromJson($member, $department->id, $center->id, $contract->id);
+                            $this->createEmployeeFromJson($member, $department->id);
                             $importedCount++;
                         }
                     }
@@ -299,7 +312,7 @@ class Employees extends Component
         }
     }
 
-    private function createEmployeeFromJson($memberData, $departmentId, $centerId, $contractId)
+    private function createEmployeeFromJson($memberData, $departmentId)
     {
         // Tạo hoặc cập nhật position
         $position = Position::updateOrCreate(
@@ -343,13 +356,11 @@ class Employees extends Component
                 'rank_code' => $memberData['rank_code'],
                 'position_id' => $position->id,
                 'department_id' => $departmentId,
-                'center_id' => $centerId,
                 'is_active' => true,
                 'CCCD' => $memberData['username'] ?? '', // Sử dụng username hoặc để trống nếu không có
                 'phone' => '0' . rand(100000000, 999999999),
                 'address' => 'Địa chỉ quân đội',
                 'gender' => 1, // 1 = Nam
-                'contract_id' => $contractId,
                 'start_date' => $this->parseDate($memberData['enlist_td']) ?? now(),
                 'quit_date' => null,
                 'max_leave_allowed' => 0,
@@ -408,6 +419,34 @@ class Employees extends Component
             }
         }
         
+        return null;
+    }
+
+    private function formatInputDate($date)
+    {
+        if (!$date) { return null; }
+        try {
+            return \Carbon\Carbon::parse($date)->format('d-m-y');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function parseInputDate($input)
+    {
+        if (!$input) { return null; }
+        $input = trim($input);
+        try {
+            $dt = \DateTime::createFromFormat('d-m-y', $input);
+            if ($dt) {
+                return $dt->format('Y-m-d');
+            }
+            // fallback try d/m/Y
+            $dt = \DateTime::createFromFormat('d/m/Y', $input);
+            if ($dt) {
+                return $dt->format('Y-m-d');
+            }
+        } catch (\Throwable $e) {}
         return null;
     }
 

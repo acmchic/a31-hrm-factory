@@ -13,16 +13,7 @@
           <p class="text-muted">{{ __('Please fill out the following information') }}</p>
         </div>
         <form wire:submit="submitTimeline" class="row g-3 mt-2">
-          <div wire:ignore class="col-md-4 col-12">
-            <label class="form-label">{{ __('Center') }}</label>
-            <select wire:model="employeeTimelineInfo.centerId" id="selectCenters"
-              class="select2 form-select @error('employeeTimelineInfo.centerId') is-invalid @enderror">
-              <option value=""></option>
-              @foreach ($centers as $Center)
-                <option value="{{ $Center->id }}"> {{ $Center->name }}</option>
-              @endforeach
-            </select>
-          </div>
+          {{-- Centers removed --}}
           <div wire:ignore class="col-md-4 col-12">
             <label class="form-label">{{ __('Department') }}</label>
             <select wire:model="employeeTimelineInfo.departmentId" id="selectDepartment"
@@ -104,11 +95,6 @@
   </script>
 
   <script>
-    $('#selectCenters').on('change', function (e) {
-      var data = $('#selectCenters').select2("val");
-      @this.set('selectedCenter', data);
-    });
-
     $('#selectDepartment').on('change', function (e) {
       var data = $('#selectDepartment').select2("val");
       @this.set('selectedDepartment', data);
@@ -125,7 +111,6 @@
 
     window.addEventListener('setSelect2Values', event => {
       $(function () {
-        $("#selectCenters").val(event.detail.centerId).trigger('change');
         $("#selectDepartment").val(event.detail.departmentId).trigger('change');
         $("#selectPosition").val(event.detail.positionId).trigger('change');
       });
@@ -137,7 +122,6 @@
 
     window.addEventListener('clearSelect2Values', event => {
       $(function () {
-        $('#selectCenters').select2('val', 0)
         $('#selectDepartment').select2('val', 0)
         $('#selectPosition').select2('val', 0)
       });
