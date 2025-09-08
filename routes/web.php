@@ -75,49 +75,49 @@ Route::middleware([
         return redirect()->route('attendance-leaves');
     })->name('attendance-leaves-create');
     Route::get('/attendance/leave-management', \App\Livewire\HumanResource\LeaveManagement::class)->name('attendance-leave-management');
-    
+
     // Download route for leave documents - Generate proper PDF
     Route::get('/leave/{id}/download', function($id) {
         $employeeLeave = \App\Models\EmployeeLeave::findOrFail($id);
-        
+
         if (!$employeeLeave->digital_signature) {
             abort(404, 'Tài liệu không tồn tại');
         }
 
         // Use DigitalSignatureService to generate proper PDF
         $digitalSignatureService = new \App\Services\DigitalSignatureService();
-        
+
         try {
             $pdfContent = $digitalSignatureService->generateLeaveRequestPDF($employeeLeave);
-            
+
             return response($pdfContent)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="Don xin nghi phep - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '.pdf"');
-                
+                ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '.pdf"');
+
         } catch (\Exception $e) {
             abort(500, 'Lỗi tạo PDF: ' . $e->getMessage());
         }
-            
+
     })->name('leave.download');
-    
+
     // Custom profile route with Vietnamese interface
     Route::get('/user/profile', function() {
         return view('profile.show-vietnamese');
     })->name('profile.show');
-    
+
     // Vehicle Registration System
     Route::get('/vehicles/registration', \App\Livewire\VehicleRegistration::class)->name('vehicle-registration');
-    
+
     // Debug route to check user roles
     Route::get('/debug-roles', function() {
         $user = Auth::user();
-        
+
         // Ensure roles exist
         $roles = ['Admin', 'HR', 'CC', 'AM'];
         foreach ($roles as $roleName) {
             \Spatie\Permission\Models\Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
         }
-        
+
         return response()->json([
             'user' => $user->email ?? $user->username,
             'name' => $user->name,
