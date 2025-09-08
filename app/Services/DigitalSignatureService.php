@@ -451,11 +451,57 @@ class DigitalSignatureService
             // Add content
             $html = $this->generateVehicleRegistrationHTMLContent($registration);
             $pdf->writeHTML($html, true, false, true, false, '');
-
-            // Add signature if available
+            
+            // Add visual signatures if available
             $this->addVehicleSignaturesToPDF($pdf, $registration);
 
-            return $pdf->Output('', 'S');
+            // Export unsigned PDF to memory
+            $unsignedPdfContent = $pdf->Output('', 'S');
+
+            // Attempt to sign with PKI (A1) if certificate configured
+            $certPathEnv = env('A1_CERT_PATH');
+            $certPassEnv = env('A1_CERT_PASSWORD');
+
+            if (!empty($certPathEnv) && !empty($certPassEnv)) {
+                // Resolve certificate absolute path
+                $certAbsolutePath = str_starts_with($certPathEnv, DIRECTORY_SEPARATOR)
+                    ? $certPathEnv
+                    : base_path($certPathEnv);
+
+                if (file_exists($certAbsolutePath)) {
+                    // Write unsigned PDF to a temp file
+                    $unsignedPath = storage_path('app/temp/vehicle_' . $registration->id . '_unsigned.pdf');
+                    Storage::disk('local')->put('temp/vehicle_' . $registration->id . '_unsigned.pdf', $unsignedPdfContent);
+
+                    // Define signed output path
+                    $signedPath = storage_path('app/temp/vehicle_' . $registration->id . '_signed.pdf');
+
+                    try {
+                        $signer = new ManageCert($certAbsolutePath, $certPassEnv);
+                        $signer->setFile($unsignedPath)->sign($signedPath);
+
+                        // Read signed PDF bytes
+                        $signedPdfContent = file_get_contents($signedPath);
+
+                        // Cleanup temp files
+                        Storage::disk('local')->delete([
+                            'temp/vehicle_' . $registration->id . '_unsigned.pdf',
+                            'temp/vehicle_' . $registration->id . '_signed.pdf',
+                        ]);
+
+                        return $signedPdfContent;
+                    } catch (\Exception $e) {
+                        Log::error('Vehicle PDF signing failed: ' . $e->getMessage());
+                        // Fallback to unsigned content on failure
+                        return $unsignedPdfContent;
+                    }
+                } else {
+                    Log::warning('A1 certificate file not found at path: ' . $certAbsolutePath);
+                }
+            }
+
+            // If no certificate configured, return unsigned PDF
+            return $unsignedPdfContent;
 
         } catch (\Exception $e) {
             Log::error('Error generating vehicle registration PDF: ' . $e->getMessage());
