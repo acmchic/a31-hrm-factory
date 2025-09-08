@@ -647,22 +647,38 @@ class VehicleRegistration extends Component
         $registration = VehicleRegistrationModel::find($registrationId);
         
         if ($registration && $registration->workflow_status === self::STATUS_SUBMITTED) {
-            // Add digital signature for department approval
-            $signatureData = [
-                'approved_by' => Auth::user()->name,
-                'approved_at' => now()->format('d/m/Y H:i:s'),
-                'position' => 'Trưởng phòng Kế hoạch',
-                'signature_path' => Auth::user()->signature_path,
-            ];
-            
-            $registration->update([
-                'workflow_status' => self::STATUS_DEPT_REVIEW,
-                'department_approved_at' => now(),
-                'department_approved_by' => Auth::user()->id,
-                'digital_signature_dept' => json_encode($signatureData),
-            ]);
-            
-            session()->flash('success', 'Đã phê duyệt cấp trưởng phòng. Chờ Thủ trưởng phê duyệt.');
+            try {
+                // Generate and sign PDF for department approval
+                $digitalSignatureService = new \App\Services\DigitalSignatureService();
+                $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration, false);
+                $signedPdf = $digitalSignatureService->signPdfBinary($pdfContent);
+                
+                // Store signed PDF
+                $signedPath = 'signed/vehicles/vehicle_' . $registration->id . '_dept_signed.pdf';
+                $digitalSignatureService->storeSignedPdf($signedPdf, $signedPath);
+                
+                // Add digital signature for department approval
+                $signatureData = [
+                    'approved_by' => Auth::user()->name,
+                    'approved_at' => now()->format('d/m/Y H:i:s'),
+                    'position' => 'Trưởng phòng Kế hoạch',
+                    'signature_path' => Auth::user()->signature_path,
+                    'signed_pdf_path' => $signedPath,
+                ];
+                
+                $registration->update([
+                    'workflow_status' => self::STATUS_DEPT_REVIEW,
+                    'department_approved_at' => now(),
+                    'department_approved_by' => Auth::user()->id,
+                    'digital_signature_dept' => json_encode($signatureData),
+                ]);
+                
+                session()->flash('success', 'Đã phê duyệt cấp trưởng phòng. Chờ Thủ trưởng phê duyệt.');
+                
+            } catch (\Exception $e) {
+                Log::error('Error approving department: ' . $e->getMessage());
+                session()->flash('error', 'Có lỗi xảy ra khi phê duyệt: ' . $e->getMessage());
+            }
         }
     }
 
@@ -671,22 +687,38 @@ class VehicleRegistration extends Component
         $registration = VehicleRegistrationModel::find($registrationId);
         
         if ($registration && $registration->workflow_status === self::STATUS_DEPT_REVIEW) {
-            // Add digital signature for director approval
-            $signatureData = [
-                'approved_by' => Auth::user()->name,
-                'approved_at' => now()->format('d/m/Y H:i:s'),
-                'position' => 'Ban Giám đốc',
-                'signature_path' => Auth::user()->signature_path,
-            ];
-            
-            $registration->update([
-                'workflow_status' => self::STATUS_APPROVED,
-                'director_approved_at' => now(),
-                'director_approved_by' => Auth::user()->id,
-                'digital_signature_director' => json_encode($signatureData),
-            ]);
-            
-            session()->flash('success', 'Đã phê duyệt cấp Thủ trưởng. Đăng ký xe đã hoàn tất.');
+            try {
+                // Generate and sign PDF for director approval
+                $digitalSignatureService = new \App\Services\DigitalSignatureService();
+                $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration, true);
+                $signedPdf = $digitalSignatureService->signPdfBinary($pdfContent);
+                
+                // Store signed PDF
+                $signedPath = 'signed/vehicles/vehicle_' . $registration->id . '_director_signed.pdf';
+                $digitalSignatureService->storeSignedPdf($signedPdf, $signedPath);
+                
+                // Add digital signature for director approval
+                $signatureData = [
+                    'approved_by' => Auth::user()->name,
+                    'approved_at' => now()->format('d/m/Y H:i:s'),
+                    'position' => 'Ban Giám đốc',
+                    'signature_path' => Auth::user()->signature_path,
+                    'signed_pdf_path' => $signedPath,
+                ];
+                
+                $registration->update([
+                    'workflow_status' => self::STATUS_APPROVED,
+                    'director_approved_at' => now(),
+                    'director_approved_by' => Auth::user()->id,
+                    'digital_signature_director' => json_encode($signatureData),
+                ]);
+                
+                session()->flash('success', 'Đã phê duyệt cấp Thủ trưởng. Đăng ký xe đã hoàn tất.');
+                
+            } catch (\Exception $e) {
+                Log::error('Error approving director: ' . $e->getMessage());
+                session()->flash('error', 'Có lỗi xảy ra khi phê duyệt: ' . $e->getMessage());
+            }
         }
     }
 
@@ -726,9 +758,26 @@ class VehicleRegistration extends Component
         }
 
         try {
-            // Use DigitalSignatureService to generate PDF
-            $digitalSignatureService = new \App\Services\DigitalSignatureService();
-            $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration);
+            // Check for existing signed PDF first
+            $signedPdfPath = null;
+            if ($registration->workflow_status === 'approved' && $registration->digital_signature_director) {
+                $signatureData = json_decode($registration->digital_signature_director, true);
+                $signedPdfPath = $signatureData['signed_pdf_path'] ?? null;
+            } elseif ($registration->workflow_status === 'dept_review' && $registration->digital_signature_dept) {
+                $signatureData = json_decode($registration->digital_signature_dept, true);
+                $signedPdfPath = $signatureData['signed_pdf_path'] ?? null;
+            }
+            
+            // If signed PDF exists, use it
+            if ($signedPdfPath && file_exists(storage_path('app/' . $signedPdfPath))) {
+                $pdfContent = file_get_contents(storage_path('app/' . $signedPdfPath));
+            } else {
+                // Generate new PDF and sign it
+                $digitalSignatureService = new \App\Services\DigitalSignatureService();
+                $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration, true);
+                $signedPdf = $digitalSignatureService->signPdfBinary($pdfContent);
+                $pdfContent = $signedPdf;
+            }
 
             $filename = 'dang_ky_xe_' . $registration->id . '_' . date('Y_m_d') . '.pdf';
 

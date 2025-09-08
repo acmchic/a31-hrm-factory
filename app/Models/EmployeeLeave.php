@@ -30,6 +30,8 @@ class EmployeeLeave extends Model
         'rejection_reason',
         'digital_signature',
         'signature_certificate',
+        'signed_pdf_path',
+        'template_pdf_path',
         'workflow_status',
         'reviewer_id',
         'reviewed_at',

@@ -12,11 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employee_leave', function (Blueprint $table) {
-            $table->dropForeign(['employee_id']);
-        });
-        
-        Schema::table('employee_leave', function (Blueprint $table) {
-            $table->string('employee_id')->change();
+            $table->string('template_pdf_path')->nullable()->after('signed_pdf_path');
         });
     }
 
@@ -26,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('employee_leave', function (Blueprint $table) {
-            $table->unsignedBigInteger('employee_id')->change();
-            $table->foreign('employee_id')->references('id')->on('employees');
+            $table->dropColumn('template_pdf_path');
         });
     }
 };

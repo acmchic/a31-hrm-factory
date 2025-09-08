@@ -323,6 +323,14 @@ class Leaves extends Component
             'created_by' => Auth::user()->name,
         ]);
 
+        // Tạo template PDF ngay khi submit đơn
+        try {
+            $digitalSignatureService = new \App\Services\DigitalSignatureService();
+            $digitalSignatureService->createLeaveRequestTemplate($employeeLeave);
+        } catch (\Exception $e) {
+            \Log::error('Error creating leave request template: ' . $e->getMessage());
+        }
+
         session()->flash('success', 'Thành công, bản ghi đã được tạo!');
         $this->dispatch('scrollToTop');
         $this->dispatch('closeModal', elementId: '#leaveModal');

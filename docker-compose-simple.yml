@@ -1,0 +1,26 @@
+services:
+    mysql:
+        image: 'mysql/mysql-server:8.0'
+        ports:
+            - '3309:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: 'A31Factory'
+            MYSQL_ROOT_HOST: '%'
+            MYSQL_DATABASE: 'a31_factory'
+            MYSQL_USER: 'a31_user'
+            MYSQL_PASSWORD: 'A31Factory'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 0
+        volumes:
+            - 'mysql-data:/var/lib/mysql'
+        healthcheck:
+            test:
+                - CMD
+                - mysqladmin
+                - ping
+                - '-pA31Factory'
+            retries: 3
+            timeout: 5s
+
+volumes:
+    mysql-data:
+        driver: local

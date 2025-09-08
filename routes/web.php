@@ -80,7 +80,7 @@ Route::middleware([
     Route::get('/leave/{id}/download', function($id) {
         $employeeLeave = \App\Models\EmployeeLeave::findOrFail($id);
 
-        if (!$employeeLeave->digital_signature) {
+        if (!$employeeLeave->signed_pdf_path && !$employeeLeave->digital_signature && !$employeeLeave->template_pdf_path) {
             abort(404, 'Tài liệu không tồn tại');
         }
 
@@ -88,11 +88,35 @@ Route::middleware([
         $digitalSignatureService = new \App\Services\DigitalSignatureService();
 
         try {
-            $pdfContent = $digitalSignatureService->generateLeaveRequestPDF($employeeLeave);
+            // First try to serve the already signed PDF from file
+            if ($employeeLeave->signed_pdf_path && file_exists(storage_path('app/' . $employeeLeave->signed_pdf_path))) {
+                $signedPdfContent = file_get_contents(storage_path('app/' . $employeeLeave->signed_pdf_path));
+                
+                return response($signedPdfContent)
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_signed.pdf"');
+            }
+            
+            // Second try: serve template PDF (chưa ký)
+            if ($employeeLeave->template_pdf_path && file_exists(storage_path('app/' . $employeeLeave->template_pdf_path))) {
+                $templatePdfContent = file_get_contents(storage_path('app/' . $employeeLeave->template_pdf_path));
+                
+                return response($templatePdfContent)
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_template.pdf"');
+            }
+            
+            // Fallback: generate and sign new PDF
+            $pdfBinary = $digitalSignatureService->generateLeaveRequestPDF($employeeLeave);
+            $signedPdfBinary = $digitalSignatureService->signPdfBinary($pdfBinary);
+            $signedPdfPath = $digitalSignatureService->storeSignedPdf($signedPdfBinary, 'signed/leaves/leave_' . $employeeLeave->id . '_signed.pdf');
+            
+            // Update the record with signed PDF path
+            $employeeLeave->update(['signed_pdf_path' => $signedPdfPath]);
 
-            return response($pdfContent)
+            return response($signedPdfBinary)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '.pdf"');
+                ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_signed.pdf"');
 
         } catch (\Exception $e) {
             abort(500, 'Lỗi tạo PDF: ' . $e->getMessage());

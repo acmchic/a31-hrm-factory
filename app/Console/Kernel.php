@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('LeavesCalculator')->monthlyOn(1, '10:30');
         $schedule->command('messages:send-unsent-bulk-messages')->everyFiveMinutes();
+        $schedule->command('a1:ensure-pfx')->daily();
     }
 
     /**
