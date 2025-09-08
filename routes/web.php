@@ -88,25 +88,7 @@ Route::middleware([
         $digitalSignatureService = new \App\Services\DigitalSignatureService();
 
         try {
-            // First try to serve the already signed PDF from file
-            if ($employeeLeave->signed_pdf_path && file_exists(storage_path('app/' . $employeeLeave->signed_pdf_path))) {
-                $signedPdfContent = file_get_contents(storage_path('app/' . $employeeLeave->signed_pdf_path));
-                
-                return response($signedPdfContent)
-                    ->header('Content-Type', 'application/pdf')
-                    ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_signed.pdf"');
-            }
-            
-            // Second try: serve template PDF (chưa ký)
-            if ($employeeLeave->template_pdf_path && file_exists(storage_path('app/' . $employeeLeave->template_pdf_path))) {
-                $templatePdfContent = file_get_contents(storage_path('app/' . $employeeLeave->template_pdf_path));
-                
-                return response($templatePdfContent)
-                    ->header('Content-Type', 'application/pdf')
-                    ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_template.pdf"');
-            }
-            
-            // Fallback: generate and sign new PDF
+            // Force regenerate PDF với giao diện mới (bỏ qua file cũ)
             $pdfBinary = $digitalSignatureService->generateLeaveRequestPDF($employeeLeave);
             $signedPdfBinary = $digitalSignatureService->signPdfBinary($pdfBinary);
             $signedPdfPath = $digitalSignatureService->storeSignedPdf($signedPdfBinary, 'signed/leaves/leave_' . $employeeLeave->id . '_signed.pdf');

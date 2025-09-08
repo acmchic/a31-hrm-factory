@@ -1,4 +1,19 @@
 services:
+    traefik:
+        image: traefik:v2.10
+        command:
+            - "--api.insecure=true"
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entrypoints.web.address=:80"
+        ports:
+            - "80:80"
+            - "8080:8080"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+            - sail
+
     quanly.a31:
         build:
             context: ./docker/8.2
@@ -8,9 +23,6 @@ services:
         image: sail-8.2/app
         extra_hosts:
             - 'host.docker.internal:host-gateway'
-        ports:
-            - '80:80'
-            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
@@ -26,6 +38,7 @@ services:
             - "traefik.enable=true"
             - "traefik.http.routers.quanly-a31.rule=Host(`quanly.a31`)"
             - "traefik.http.routers.quanly-a31.entrypoints=web"
+            - "traefik.http.services.quanly-a31.loadbalancer.server.port=80"
     mysql:
         image: 'mysql/mysql-server:8.0'
         ports:

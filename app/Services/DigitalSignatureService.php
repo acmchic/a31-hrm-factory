@@ -182,11 +182,11 @@ class DigitalSignatureService
         try {
             $pdfBinary = $this->generateLeaveRequestPDF($leaveRequest);
             $templatePath = $this->storeSignedPdf($pdfBinary, 'templates/leaves/leave_' . $leaveRequest->id . '_template.pdf');
-            
+
             $leaveRequest->update([
                 'template_pdf_path' => $templatePath
             ]);
-            
+
             return $templatePath;
         } catch (\Exception $e) {
             Log::error('Error creating leave request template: ' . $e->getMessage());
@@ -289,15 +289,15 @@ class DigitalSignatureService
             $pdf->AddPage();
 
 
-            $logoPath = public_path('assets/img/logo/logo.png');
-            if (file_exists($logoPath)) {
+        $logoPath = public_path('assets/img/logo/logo.png');
+        if (file_exists($logoPath)) {
+            // Thu nhỏ logo và đặt ở vị trí phù hợp
+            $logoWidth = 20; // Giảm từ 28 xuống 20
+            $centerX = (210 - $logoWidth) / 2;
+            $pdf->Image($logoPath, $centerX, 8, $logoWidth, 0, '', '', '', false, 300, '', false, false, 0);
 
-                $logoWidth = 28;
-                $centerX = (210 - $logoWidth) / 2;
-                $pdf->Image($logoPath, $centerX, 12, $logoWidth, 0, '', '', '', false, 300, '', false, false, 0);
-
-                $pdf->SetY(28);
-            }
+            $pdf->SetY(22); // Giảm từ 28 xuống 22
+        }
 
 
             $pdf->SetFont('dejavusans', '', 12);
@@ -306,8 +306,8 @@ class DigitalSignatureService
             $html = $this->generateProfessionalLeavePDF($leaveRequest);
             $pdf->writeHTML($html, true, false, true, false, '');
 
-
-            // Bỏ các function tạo ảnh chữ ký lớn để tránh layout xấu
+            // Thêm chữ ký trực quan góc phải trên cùng (nếu có) và tên Trưởng phòng bên dưới
+            $this->addVisualSignatureToLeavePDF($pdf, $leaveRequest);
 
             return $pdf->Output('', 'S');
 
@@ -391,6 +391,53 @@ class DigitalSignatureService
         }
     }
 
+    /**
+     * Thêm chữ ký trực quan vào PDF nghỉ phép ở góc phải trên
+     */
+    private function addVisualSignatureToLeavePDF(\TCPDF $pdf, EmployeeLeave $leaveRequest)
+    {
+        if (!$leaveRequest->approved_at || !$leaveRequest->approved_by) {
+            return;
+        }
+
+        $approver = User::find($leaveRequest->approved_by);
+        if (!$approver || !$approver->signature_path) {
+            return;
+        }
+
+        $signaturePath = storage_path('app/public/' . $approver->signature_path);
+        if (!file_exists($signaturePath)) {
+            return;
+        }
+
+        // Vị trí góc phải dưới - không che khuất nội dung
+        $pageWidth = 210; // mm
+        $rightMargin = 20; // mm
+        $imageWidth = 40; // mm - giảm kích thước
+        $imageHeight = 20; // mm - giảm chiều cao
+        $x = $pageWidth - $rightMargin - $imageWidth; // ~150mm từ lề trái
+        $y = 200; // Dịch xuống dưới, gần cuối trang
+
+        // Vẽ khung viền cho chữ ký
+        $pdf->SetDrawColor(200, 200, 200); // Màu xám nhạt
+        $pdf->SetLineWidth(0.3);
+        $pdf->Rect($x - 2, $y - 2, $imageWidth + 4, $imageHeight + 15, 'D');
+
+        // Vẽ ảnh chữ ký
+        $pdf->Image($signaturePath, $x, $y, $imageWidth, $imageHeight, '', '', '', false, 300, '', false, false, 0);
+
+        // Ghi tên Trưởng phòng bên dưới ảnh chữ ký
+        $pdf->SetFont('dejavusans', 'B', 8);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetXY($x - 2, $y + $imageHeight + 2);
+        $pdf->Cell($imageWidth + 4, 5, $approver->name, 0, 0, 'C');
+
+        // Thêm ngày ký
+        $pdf->SetFont('dejavusans', '', 7);
+        $pdf->SetXY($x - 2, $y + $imageHeight + 7);
+        $pdf->Cell($imageWidth + 4, 4, $leaveRequest->approved_at->format('d/m/Y'), 0, 0, 'C');
+    }
+
 
 
 
@@ -405,38 +452,38 @@ class DigitalSignatureService
 
         $html = '
         <style>
-            body { 
-                font-family: dejavusans, sans-serif; 
-                font-size: 11pt; 
-                color: #333; 
+            body {
+                font-family: dejavusans, sans-serif;
+                font-size: 11pt;
+                color: #333;
                 line-height: 1.4;
-                margin: 0; 
-                padding: 0; 
+                margin: 0;
+                padding: 0;
             }
-            
-            .header { 
-                text-align: center; 
-                margin-bottom: 25px; 
+
+            .header {
+                text-align: center;
+                margin-bottom: 25px;
                 padding: 15px 0;
                 background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
                 border-radius: 8px;
                 border: 1px solid #dee2e6;
             }
-            
-            .company-name { 
-                font-size: 14pt; 
-                font-weight: bold; 
-                color: #2c3e50; 
-                margin-bottom: 5px; 
+
+            .company-name {
+                font-size: 14pt;
+                font-weight: bold;
+                color: #2c3e50;
+                margin-bottom: 5px;
                 text-transform: uppercase;
                 letter-spacing: 1px;
             }
-            
-            .document-title { 
-                font-size: 18pt; 
-                font-weight: bold; 
-                color: #0056b3; 
-                margin-top: 5px; 
+
+            .document-title {
+                font-size: 18pt;
+                font-weight: bold;
+                color: #0056b3;
+                margin-top: 5px;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             }
 
@@ -448,26 +495,26 @@ class DigitalSignatureService
                 margin-bottom: 20px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             }
-            
+
             .info-table {
                 width: 100%;
                 border-collapse: collapse;
                 font-size: 10pt;
             }
-            
-            .info-table tr { 
-                border-bottom: 1px solid #f1f3f4; 
+
+            .info-table tr {
+                border-bottom: 1px solid #f1f3f4;
             }
-            
+
             .info-table tr:last-child {
                 border-bottom: none;
             }
-            
+
             .info-table td {
                 padding: 12px 15px;
                 vertical-align: top;
             }
-            
+
             .label {
                 font-weight: bold;
                 background-color: #f8f9fa;
@@ -476,13 +523,13 @@ class DigitalSignatureService
                 border-right: 2px solid #dee2e6;
                 position: relative;
             }
-            
+
             .label:after {
                 content: ":";
                 position: absolute;
                 right: 10px;
             }
-            
+
             .value {
                 background-color: #ffffff;
                 color: #212529;
@@ -490,25 +537,25 @@ class DigitalSignatureService
                 font-weight: 500;
             }
 
-            .status-approved { 
-                color: #28a745; 
-                font-weight: bold; 
+            .status-approved {
+                color: #28a745;
+                font-weight: bold;
                 background-color: #d4edda;
                 padding: 4px 8px;
                 border-radius: 4px;
                 display: inline-block;
             }
-            .status-pending { 
-                color: #856404; 
-                font-weight: bold; 
+            .status-pending {
+                color: #856404;
+                font-weight: bold;
                 background-color: #fff3cd;
                 padding: 4px 8px;
                 border-radius: 4px;
                 display: inline-block;
             }
-            .status-rejected { 
-                color: #721c24; 
-                font-weight: bold; 
+            .status-rejected {
+                color: #721c24;
+                font-weight: bold;
                 background-color: #f8d7da;
                 padding: 4px 8px;
                 border-radius: 4px;
@@ -522,7 +569,7 @@ class DigitalSignatureService
                 padding: 20px;
                 margin-top: 20px;
             }
-            
+
             .approval-title {
                 font-size: 12pt;
                 font-weight: bold;
@@ -532,7 +579,7 @@ class DigitalSignatureService
                 text-transform: uppercase;
                 letter-spacing: 1px;
             }
-            
+
             .approval-info {
                 display: flex;
                 justify-content: space-between;
@@ -542,23 +589,23 @@ class DigitalSignatureService
                 border-radius: 4px;
                 border: 1px solid #e1f5fe;
             }
-            
+
             .approver-info {
                 flex: 1;
             }
-            
+
             .approver-name {
                 font-weight: bold;
                 color: #2c3e50;
                 font-size: 11pt;
                 margin-bottom: 5px;
             }
-            
+
             .approval-date {
                 color: #666;
                 font-size: 9pt;
             }
-            
+
             .signature-line {
                 flex: 1;
                 text-align: center;
@@ -603,7 +650,7 @@ class DigitalSignatureService
                 <tr>
                     <td class="label">Thời gian nghỉ</td>
                     <td class="value">
-                        Từ: ' . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . ' | 
+                        Từ: ' . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . ' |
                         Đến: ' . ($leaveRequest->to_date ? $leaveRequest->to_date->format('d/m/Y') : 'N/A') . '
                     </td>
                 </tr>
@@ -653,24 +700,6 @@ class DigitalSignatureService
         $html .= '
             </table>
         </div>';
-
-        // Thêm phần phê duyệt đẹp
-        if ($leaveRequest->approved_at) {
-            $approver = \App\Models\User::find($leaveRequest->approved_by);
-            $html .= '
-            <div class="approval-section">
-                <div class="approval-title">Phê duyệt</div>
-                <div class="approval-info">
-                    <div class="approver-info">
-                        <div class="approver-name">' . ($approver->name ?? 'N/A') . '</div>
-                        <div class="approval-date">' . $leaveRequest->approved_at->format('d/m/Y H:i') . '</div>
-                    </div>
-                    <div class="signature-line">Chữ ký</div>
-                </div>
-            </div>';
-        }
-
-        $html .= '<div class="footer">Chữ ký số A1: A31 Factory Digital Signing - ' . now()->format('d/m/Y H:i') . '</div>';
 
         return $html;
     }
@@ -821,8 +850,8 @@ class DigitalSignatureService
             $html = $this->generateVehicleRegistrationHTMLContent($registration);
             $pdf->writeHTML($html, true, false, true, false, '');
 
-
-            $this->addVehicleSignaturesToPDF($pdf, $registration);
+            // Thêm chữ ký trực quan góc phải trên cùng (ưu tiên Trưởng phòng)
+            $this->addVisualSignatureToVehiclePDF($pdf, $registration);
 
             return $pdf->Output('', 'S');
 
@@ -1038,6 +1067,98 @@ class DigitalSignatureService
             $pdf->SetXY(120, $yPosition + 47);
             $pdf->SetFont('dejavusans', '', 9);
             $pdf->Cell(60, 6, $directorSignature['approved_by'] ?? 'N/A', 0, 1, 'C');
+        }
+    }
+
+    /**
+     * Thêm chữ ký trực quan vào PDF đăng ký xe ở góc phải trên
+     * Ưu tiên chữ ký Trưởng phòng nếu có, hiển thị tên Trưởng phòng bên dưới.
+     */
+    private function addVisualSignatureToVehiclePDF($pdf, $registration)
+    {
+        $chosenImagePath = null;
+        $displayName = null;
+
+        // Ưu tiên chữ ký Trưởng phòng
+        if (!empty($registration->digital_signature_dept)) {
+            $deptSig = json_decode($registration->digital_signature_dept, true);
+            if (is_array($deptSig)) {
+                $displayName = $deptSig['approved_by'] ?? $displayName;
+                if (!empty($deptSig['signature_path'])) {
+                    $path = storage_path('app/public/' . $deptSig['signature_path']);
+                    if (file_exists($path)) {
+                        $chosenImagePath = $path;
+                    }
+                }
+                if (!$chosenImagePath && !empty($deptSig['approved_by'])) {
+                    $approver = \App\Models\User::where('name', $deptSig['approved_by'])->first();
+                    if ($approver && $approver->signature_path) {
+                        $path = storage_path('app/public/' . $approver->signature_path);
+                        if (file_exists($path)) {
+                            $chosenImagePath = $path;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Nếu không có, lấy chữ ký Ban giám đốc
+        if (!$chosenImagePath && !empty($registration->digital_signature_director)) {
+            $dirSig = json_decode($registration->digital_signature_director, true);
+            if (is_array($dirSig)) {
+                // Vẫn hiển thị tên Trưởng phòng nếu có, nếu không có thì dùng tên BGĐ
+                if (!$displayName) {
+                    $displayName = $dirSig['approved_by'] ?? $displayName;
+                }
+                if (!empty($dirSig['signature_path'])) {
+                    $path = storage_path('app/public/' . $dirSig['signature_path']);
+                    if (file_exists($path)) {
+                        $chosenImagePath = $path;
+                    }
+                }
+                if (!$chosenImagePath && !empty($dirSig['approved_by'])) {
+                    $approver = \App\Models\User::where('name', $dirSig['approved_by'])->first();
+                    if ($approver && $approver->signature_path) {
+                        $path = storage_path('app/public/' . $approver->signature_path);
+                        if (file_exists($path)) {
+                            $chosenImagePath = $path;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!$chosenImagePath) {
+            return;
+        }
+
+        // Vị trí góc phải dưới - giống như leave PDF
+        $pageWidth = 210; // mm
+        $rightMargin = 20; // mm
+        $imageWidth = 40; // mm
+        $imageHeight = 20; // mm
+        $x = $pageWidth - $rightMargin - $imageWidth;
+        $y = 200; // Dịch xuống dưới
+
+        // Vẽ khung viền cho chữ ký
+        $pdf->SetDrawColor(200, 200, 200); // Màu xám nhạt
+        $pdf->SetLineWidth(0.3);
+        $pdf->Rect($x - 2, $y - 2, $imageWidth + 4, $imageHeight + 15, 'D');
+
+        // Vẽ ảnh chữ ký
+        $pdf->Image($chosenImagePath, $x, $y, $imageWidth, $imageHeight, '', '', '', false, 300, '', false, false, 0);
+
+        // Tên hiển thị dưới chữ ký (ưu tiên Trưởng phòng)
+        if ($displayName) {
+            $pdf->SetFont('dejavusans', 'B', 8);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetXY($x - 2, $y + $imageHeight + 2);
+            $pdf->Cell($imageWidth + 4, 5, $displayName, 0, 0, 'C');
+
+            // Thêm ngày ký nếu có
+            $pdf->SetFont('dejavusans', '', 7);
+            $pdf->SetXY($x - 2, $y + $imageHeight + 7);
+            $pdf->Cell($imageWidth + 4, 4, now()->format('d/m/Y'), 0, 0, 'C');
         }
     }
 
