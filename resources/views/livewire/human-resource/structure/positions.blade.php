@@ -22,7 +22,6 @@
             <th>{{ __('ID') }}</th>
             <th>{{ __('Name') }}</th>
             {{-- <th>Coordinator</th> --}}
-            <th>{{ __('Vacancies Count') }}</th>
             <th>{{ __('Actions') }}</th>
           </tr>
         </thead>
@@ -31,7 +30,6 @@
           <tr>
             <td>{{ $position->id }}</td>
             <td><strong>{{ $position->name }}</strong></td>
-            <td>{{ $position->vacancies_count }}</strong></td>
 
             <td>
               <div style="display: flex">

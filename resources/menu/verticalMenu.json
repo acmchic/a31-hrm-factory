@@ -21,7 +21,7 @@
         },
         {
           "url": "structure/departments",
-          "name": "Đơn vị",
+          "name": "Phòng ban",
           "slug": "structure-departments",
           "role": ["Admin", "HR", "CC", "AM", "Guest"]
         },
@@ -30,13 +30,8 @@
           "name": "Chức vụ",
           "slug": "structure-positions",
           "role": ["Admin", "HR", "CC", "AM", "Guest"]
-        },
-        {
-          "url": "structure/centers",
-          "name": "Trung tâm",
-          "slug": "structure-centers",
-          "role": ["Admin", "HR", "CC", "AM", "Guest"]
         }
+
       ]
     },
     {
@@ -75,12 +70,6 @@
           "url": "attendance/leaves/create",
           "name": "Tạo đơn nghỉ phép",
           "slug": "attendance-leaves-create",
-          "role": ["Admin", "HR", "CC", "AM", "Guest"]
-        },
-        {
-          "url": "/holidays",
-          "name": "Ngày nghỉ lễ",
-          "slug": "holidays",
           "role": ["Admin", "HR", "CC", "AM", "Guest"]
         }
       ]

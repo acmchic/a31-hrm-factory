@@ -81,6 +81,7 @@
   {{-- Alerts --}}
   @include('_partials/_alerts/alert-general')
 
+
   <!-- Factory Header -->
   <div class="header-section">
     <img src="{{ asset('assets/img/logo/logo.png') }}" alt="A31 Factory Logo" class="factory-logo">

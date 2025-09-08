@@ -27,7 +27,7 @@ class EmployeesExport implements FromCollection, WithHeadings, WithMapping
             'Họ và tên',
             'Cấp bậc',
             'Chức vụ',
-            'Đơn vị',
+            'Phòng ban',
             'Trung tâm',
             'Ngày sinh',
             'Ngày nhập ngũ',
