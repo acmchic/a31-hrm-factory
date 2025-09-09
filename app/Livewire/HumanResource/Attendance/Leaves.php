@@ -325,7 +325,7 @@ class Leaves extends Component
 
         // Tạo template PDF ngay khi submit đơn
         try {
-            $digitalSignatureService = new \App\Services\DigitalSignatureService();
+            $leaveService = new \App\Services\LeaveDigitalSignatureService();
             $digitalSignatureService->createLeaveRequestTemplate($employeeLeave);
         } catch (\Exception $e) {
             \Log::error('Error creating leave request template: ' . $e->getMessage());
@@ -453,9 +453,9 @@ class Leaves extends Component
             }
 
             // Use digital signature service if available
-            if (class_exists('\App\Services\DigitalSignatureService')) {
-                $digitalSignatureService = new \App\Services\DigitalSignatureService();
-                $digitalSignatureService->signLeaveRequest($employeeLeave, Auth::user());
+            if (class_exists('\App\Services\LeaveDigitalSignatureService')) {
+                $leaveService = new \App\Services\LeaveDigitalSignatureService();
+                $leaveService->signLeaveRequest($employeeLeave, Auth::user());
             } else {
                 // Simple approval without digital signature
                 $employeeLeave->update([

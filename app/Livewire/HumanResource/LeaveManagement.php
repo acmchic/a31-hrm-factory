@@ -5,7 +5,7 @@ namespace App\Livewire\HumanResource;
 use App\Models\EmployeeLeave;
 use App\Models\Leave;
 use App\Models\Employee;
-use App\Services\DigitalSignatureService;
+use App\Services\LeaveDigitalSignatureService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -251,8 +251,14 @@ class LeaveManagement extends Component
                 return;
             }
 
-            $digitalSignatureService = new DigitalSignatureService();
-            return $digitalSignatureService->exportSignedPDF($employeeLeave);
+            $leaveService = new LeaveDigitalSignatureService();
+            $pdfBinary = $leaveService->generateLeaveRequestPDF($employeeLeave);
+            
+            $filename = 'Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_signed.pdf';
+            
+            return response($pdfBinary)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
             
         } catch (\Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra khi xuất PDF: ' . $e->getMessage());

@@ -13,7 +13,7 @@
             <h3 class="mb-2">{{ $isEdit ? 'Cập nhật đăng ký' : 'Đăng ký xe mới' }}</h3>
             <p class="text-muted">Vui lòng điền đầy đủ thông tin</p>
           </div>
-          <form wire:submit="submitRegistration" class="row g-3">
+          <form wire:submit.prevent="submitRegistration" class="row g-3">
             @if ($errors->any())
             <div class="alert alert-danger">
               <ul>
@@ -63,6 +63,21 @@
               </select>
               @error('vehicle_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
+
+            <div class="col-12">
+              <label class="form-label w-100">Chọn lái xe <span class="text-danger">*</span></label>
+              <select wire:model='driver_id' class="form-control @error('driver_id') is-invalid @enderror">
+                <option value="">Chọn lái xe</option>
+                @if(isset($availableDrivers) && $availableDrivers->count() > 0)
+                  @foreach($availableDrivers as $driver)
+                    <option value="{{ $driver->id }}">{{ $driver->name }} - {{ $driver->position->name ?? 'Lái xe' }}</option>
+                  @endforeach
+                @else
+                  <option value="" disabled>Không có lái xe nào</option>
+                @endif
+              </select>
+              @error('driver_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
             
             <div class="col-md-6 col-12">
               <label class="form-label">Ngày đi <span class="text-danger">*</span></label>
@@ -87,23 +102,8 @@
               @error('purpose') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             
-            <div class="col-12">
-              <label class="form-label w-100">Chọn lái xe <span class="text-danger">*</span></label>
-              <select wire:model='driver_id' class="form-control @error('driver_id') is-invalid @enderror">
-                <option value="">Chọn lái xe</option>
-                @if(isset($availableDrivers) && $availableDrivers->count() > 0)
-                  @foreach($availableDrivers as $driver)
-                    <option value="{{ $driver->id }}">{{ $driver->name }} - {{ $driver->position->name ?? 'Lái xe' }}</option>
-                  @endforeach
-                @else
-                  <option value="" disabled>Không có lái xe nào</option>
-                @endif
-              </select>
-              @error('driver_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-            
             <div class="col-12 text-center">
-              <button type="submit" class="btn btn-primary me-sm-3 me-1">Đăng ký</button>
+              <button type="submit" class="btn btn-primary me-sm-3 me-1" onclick="console.log('Submit button clicked')">Đăng ký</button>
               <button type="reset" class="btn btn-label-secondary btn-reset" data-bs-dismiss="modal" aria-label="Đóng">Hủy</button>
             </div>
           </form>

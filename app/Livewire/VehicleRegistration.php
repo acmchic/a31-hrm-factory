@@ -7,6 +7,7 @@ use App\Models\VehicleRegistration as VehicleRegistrationModel;
 use App\Models\User;
 use App\Imports\VehiclesImport;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -111,7 +112,7 @@ class VehicleRegistration extends Component
             }
         } catch (\Exception $e) {
             // If database connection fails, log the error but continue
-            \Log::warning('Could not create roles: ' . $e->getMessage());
+            Log::warning('Could not create roles: ' . $e->getMessage());
         }
     }
     
@@ -136,7 +137,7 @@ class VehicleRegistration extends Component
             }
         } catch (\Exception $e) {
             // If role assignment fails, log the error but continue
-            \Log::warning('Could not assign roles: ' . $e->getMessage());
+            Log::warning('Could not assign roles: ' . $e->getMessage());
         }
     }
 
@@ -148,7 +149,7 @@ class VehicleRegistration extends Component
                          $this->isFromPlanningDepartment();
         } catch (\Exception $e) {
             // If role check fails, allow access for now
-            \Log::warning('Role check failed: ' . $e->getMessage());
+            Log::warning('Role check failed: ' . $e->getMessage());
             $canAccess = true;
         }
 
@@ -230,6 +231,15 @@ class VehicleRegistration extends Component
     public function submitRegistration()
     {
         try {
+            Log::info('Vehicle registration submission started', [
+                'vehicle_id' => $this->vehicle_id,
+                'driver_id' => $this->driver_id,
+                'departure_date' => $this->departure_date,
+                'return_date' => $this->return_date,
+                'route' => $this->route,
+                'purpose' => $this->purpose
+            ]);
+            
             $this->skipRender();
             $this->validate();
 
@@ -292,7 +302,7 @@ class VehicleRegistration extends Component
             
         } catch (\Exception $e) {
             session()->flash('error', 'Lỗi khi tạo đăng ký: ' . $e->getMessage());
-            \Log::error('Vehicle registration error: ' . $e->getMessage());
+            Log::error('Vehicle registration error: ' . $e->getMessage());
         }
     }
 
@@ -335,6 +345,11 @@ class VehicleRegistration extends Component
             })
             ->where('is_active', true)
             ->get();
+            
+        \Log::info('Drivers loaded', [
+            'drivers_count' => $this->availableDrivers->count(),
+            'drivers' => $this->availableDrivers->pluck('name', 'id')->toArray()
+        ]);
 
         // If no drivers found, create some sample data or show message
         if ($this->availableDrivers->isEmpty()) {
@@ -542,7 +557,7 @@ class VehicleRegistration extends Component
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error creating vehicle tables: ' . $e->getMessage());
+            Log::error('Error creating vehicle tables: ' . $e->getMessage());
         }
     }
 
@@ -649,13 +664,13 @@ class VehicleRegistration extends Component
         if ($registration && $registration->workflow_status === self::STATUS_SUBMITTED) {
             try {
                 // Generate and sign PDF for department approval
-                $digitalSignatureService = new \App\Services\DigitalSignatureService();
-                $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration, false);
-                $signedPdf = $digitalSignatureService->signPdfBinary($pdfContent);
+                $vehicleService = new \App\Services\VehicleDigitalSignatureService();
+                $pdfContent = $vehicleService->generateVehicleRegistrationPDF($registration);
+                $signedPdf = $vehicleService->signPdfBinary($pdfContent);
                 
                 // Store signed PDF
                 $signedPath = 'signed/vehicles/vehicle_' . $registration->id . '_dept_signed.pdf';
-                $digitalSignatureService->storeSignedPdf($signedPdf, $signedPath);
+                $vehicleService->storeSignedPdf($signedPdf, $signedPath);
                 
                 // Add digital signature for department approval
                 $signatureData = [
@@ -689,13 +704,13 @@ class VehicleRegistration extends Component
         if ($registration && $registration->workflow_status === self::STATUS_DEPT_REVIEW) {
             try {
                 // Generate and sign PDF for director approval
-                $digitalSignatureService = new \App\Services\DigitalSignatureService();
-                $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration, true);
-                $signedPdf = $digitalSignatureService->signPdfBinary($pdfContent);
+                $vehicleService = new \App\Services\VehicleDigitalSignatureService();
+                $pdfContent = $vehicleService->generateVehicleRegistrationPDF($registration);
+                $signedPdf = $vehicleService->signPdfBinary($pdfContent);
                 
                 // Store signed PDF
                 $signedPath = 'signed/vehicles/vehicle_' . $registration->id . '_director_signed.pdf';
-                $digitalSignatureService->storeSignedPdf($signedPdf, $signedPath);
+                $vehicleService->storeSignedPdf($signedPdf, $signedPath);
                 
                 // Add digital signature for director approval
                 $signatureData = [
@@ -800,7 +815,7 @@ class VehicleRegistration extends Component
             // Save content to temp file
             $writeResult = file_put_contents($tempPath, $pdfContent);
 
-            \Log::info('File write result', [
+            Log::info('File write result', [
                 'temp_path' => $tempPath,
                 'write_result' => $writeResult,
                 'file_exists' => file_exists($tempPath),
@@ -809,7 +824,7 @@ class VehicleRegistration extends Component
             ]);
 
             // Use JavaScript to trigger download
-            \Log::info('Dispatching download event', [
+            Log::info('Dispatching download event', [
                 'filename' => $filename,
                 'path' => $tempPath,
                 'registration_id' => $registrationId
@@ -821,9 +836,9 @@ class VehicleRegistration extends Component
 
         } catch (\Exception $e) {
             // Log the full error for debugging
-            \Log::error('Vehicle PDF Download Error: ' . $e->getMessage());
-            \Log::error('Registration ID: ' . $registrationId);
-            \Log::error('Registration Status: ' . $registration->workflow_status);
+            Log::error('Vehicle PDF Download Error: ' . $e->getMessage());
+            Log::error('Registration ID: ' . $registrationId);
+            Log::error('Registration Status: ' . $registration->workflow_status);
 
             session()->flash('error', 'Lỗi tạo PDF: ' . $e->getMessage());
         }

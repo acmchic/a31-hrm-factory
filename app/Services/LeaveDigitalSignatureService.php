@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\EmployeeLeave;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
@@ -71,10 +72,19 @@ class LeaveDigitalSignatureService extends BaseDigitalSignatureService
     {
         $user = User::find($leaveRequest->employee_id);
         $leave = $leaveRequest->leave;
+        
+        // Lấy thông tin employee để có phòng ban, chức vụ, cấp bậc
+        $employee = Employee::where('user_id', $user->id)->first();
+        if (!$employee && $user->name) {
+            $employee = Employee::where('name', $user->name)->first();
+        }
 
         $tableData = [
             ['label' => 'Họ và tên nhân viên', 'value' => $user->name ?? 'N/A'],
             ['label' => 'Username', 'value' => $user->username ?? 'N/A'],
+            ['label' => 'Phòng ban', 'value' => $employee?->department?->name ?? 'N/A'],
+            ['label' => 'Chức vụ', 'value' => $employee?->position?->name ?? 'N/A'],
+            ['label' => 'Cấp bậc', 'value' => $employee?->rank_code ?? 'N/A'],
             ['label' => 'Loại nghỉ phép', 'value' => $leave->name ?? 'N/A'],
             ['label' => 'Thời gian nghỉ', 'value' => 'Từ: ' . ($leaveRequest->from_date ? $leaveRequest->from_date->format('d/m/Y') : 'N/A') . ' | Đến: ' . ($leaveRequest->to_date ? $leaveRequest->to_date->format('d/m/Y') : 'N/A')],
             ['label' => 'Lý do nghỉ phép', 'value' => $leaveRequest->note ?: 'Không có ghi chú'],

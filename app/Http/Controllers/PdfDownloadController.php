@@ -50,6 +50,32 @@ class PdfDownloadController extends Controller
         }
     }
 
+    public function downloadVehicle($id)
+    {
+        $registration = \App\Models\VehicleRegistration::with(['vehicle', 'user'])->find($id);
+        
+        if (!$registration) {
+            abort(404, 'Không tìm thấy đăng ký xe.');
+        }
+
+        try {
+            $vehicleService = new \App\Services\VehicleDigitalSignatureService();
+            $pdfBinary = $vehicleService->generateVehicleRegistrationPDF($registration);
+            $signedPdfBinary = $vehicleService->signPdfBinary($pdfBinary);
+            
+            $filename = 'Đăng ký xe - ' . ($registration->user->name ?? 'Unknown') . '_signed.pdf';
+
+            return response($signedPdfBinary)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->header('Content-Security-Policy', 'default-src \'self\' \'unsafe-inline\' data:')
+                ->header('X-Content-Type-Options', 'nosniff');
+
+        } catch (\Exception $e) {
+            abort(500, 'Lỗi tạo PDF: ' . $e->getMessage());
+        }
+    }
+
     public function downloadTempFile(Request $request)
     {
         $filename = $request->query('filename');

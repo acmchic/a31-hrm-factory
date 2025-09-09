@@ -197,25 +197,34 @@ abstract class BaseDigitalSignatureService
 
         $pageWidth = 210;
         $rightMargin = 20;
-        $imageWidth = 40;
-        $imageHeight = 20;
+        $imageWidth = 45;
+        $imageHeight = 22;
         $x = $pageWidth - $rightMargin - $imageWidth;
         $y = 200;
 
-        $pdf->SetDrawColor(200, 200, 200);
-        $pdf->SetLineWidth(0.3);
-        $pdf->Rect($x - 2, $y - 2, $imageWidth + 4, $imageHeight + 15, 'D');
+        // Lấy thông tin chức vụ của người phê duyệt
+        $employee = \App\Models\Employee::where('user_id', $approver->id)->first();
+        if (!$employee && $approver->name) {
+            $employee = \App\Models\Employee::where('name', $approver->name)->first();
+        }
+        $position = $employee?->position?->name ?? 'Trưởng phòng';
 
-        $pdf->Image($signaturePath, $x, $y, $imageWidth, $imageHeight, '', '', '', false, 300, '', false, false, 0);
-
+        // 1. Chức vụ (ở trên cùng)
         $pdf->SetFont('dejavusans', 'B', 8);
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->SetXY($x - 2, $y + $imageHeight + 2);
-        $pdf->Cell($imageWidth + 4, 5, $approver->name, 0, 0, 'C');
+        $pdf->SetXY($x - 5, $y - 8);
+        $pdf->Cell($imageWidth + 10, 5, $position, 0, 0, 'C');
 
-        $pdf->SetFont('dejavusans', '', 7);
-        $pdf->SetXY($x - 2, $y + $imageHeight + 7);
-        $pdf->Cell($imageWidth + 4, 4, $approvedAt->format('d/m/Y'), 0, 0, 'C');
+        // 2. Ảnh chữ ký (ở giữa)
+        $pdf->Image($signaturePath, $x, $y, $imageWidth, $imageHeight, '', '', '', false, 300, '', false, false, 0);
+
+        // 3. Họ và tên (dưới ảnh)
+        $pdf->SetFont('dejavusans', 'B', 8);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetXY($x - 5, $y + $imageHeight + 3);
+        $pdf->Cell($imageWidth + 10, 5, $approver->name, 0, 0, 'C');
+
+
     }
 
     protected function getBaseCSS(): string
@@ -277,8 +286,9 @@ abstract class BaseDigitalSignatureService
         }
 
         .info-table td {
-            padding: 14px 18px;
+            padding: 24px 28px;
             vertical-align: top;
+            line-height: 1.8;
         }
 
         .label {

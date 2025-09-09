@@ -23,8 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force HTTPS when behind proxy
-        if ($this->app->environment('production') || request()->header('X-Forwarded-Proto') === 'https') {
+        // Only force HTTPS in production with valid certificates
+        if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
 
