@@ -76,35 +76,37 @@ Route::middleware([
     })->name('attendance-leaves-create');
     Route::get('/attendance/leave-management', \App\Livewire\HumanResource\LeaveManagement::class)->name('attendance-leave-management');
 
-    // Download route for leave documents - Generate proper PDF
-    Route::get('/leave/{id}/download', function($id) {
-        $employeeLeave = \App\Models\EmployeeLeave::findOrFail($id);
-
-        if (!$employeeLeave->signed_pdf_path && !$employeeLeave->digital_signature && !$employeeLeave->template_pdf_path) {
-            abort(404, 'Tài liệu không tồn tại');
+    // Download route for leave documents
+    Route::get('/leave/{id}/download', [App\Http\Controllers\PdfDownloadController::class, 'downloadLeave'])->name('leave.download');
+    
+    // Download temp files (for vehicle PDFs)
+    Route::get('/download-temp-file', [App\Http\Controllers\PdfDownloadController::class, 'downloadTempFile'])->name('download.temp');
+    
+    // Direct vehicle PDF download route for testing
+    Route::get('/vehicle/{id}/download', function($id) {
+        $registration = \App\Models\VehicleRegistration::with(['vehicle', 'user'])->find($id);
+        
+        if (!$registration) {
+            abort(404, 'Không tìm thấy đăng ký xe.');
         }
 
-        // Use DigitalSignatureService to generate proper PDF
-        $digitalSignatureService = new \App\Services\DigitalSignatureService();
-
         try {
-            // Force regenerate PDF với giao diện mới (bỏ qua file cũ)
-            $pdfBinary = $digitalSignatureService->generateLeaveRequestPDF($employeeLeave);
-            $signedPdfBinary = $digitalSignatureService->signPdfBinary($pdfBinary);
-            $signedPdfPath = $digitalSignatureService->storeSignedPdf($signedPdfBinary, 'signed/leaves/leave_' . $employeeLeave->id . '_signed.pdf');
+            $vehicleService = new \App\Services\VehicleDigitalSignatureService();
+            $pdfBinary = $vehicleService->generateVehicleRegistrationPDF($registration);
+            $signedPdfBinary = $vehicleService->signPdfBinary($pdfBinary);
             
-            // Update the record with signed PDF path
-            $employeeLeave->update(['signed_pdf_path' => $signedPdfPath]);
+            $filename = 'Đăng ký xe - ' . ($registration->user->name ?? 'Unknown') . '_signed.pdf';
 
             return response($signedPdfBinary)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="Đơn xin nghỉ phép - ' . (\App\Models\User::find($employeeLeave->employee_id)->name ?? 'Unknown') . '_signed.pdf"');
+                ->header('Content-Disposition', 'inline; filename="' . $filename . '"')
+                ->header('Content-Security-Policy', 'default-src \'self\' \'unsafe-inline\' data:')
+                ->header('X-Content-Type-Options', 'nosniff');
 
         } catch (\Exception $e) {
             abort(500, 'Lỗi tạo PDF: ' . $e->getMessage());
         }
-
-    })->name('leave.download');
+    })->name('vehicle.download')->middleware('auth');
 
     // Custom profile route with Vietnamese interface
     Route::get('/user/profile', function() {

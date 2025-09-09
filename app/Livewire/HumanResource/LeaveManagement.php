@@ -189,8 +189,8 @@ class LeaveManagement extends Component
                 return;
             }
 
-            $digitalSignatureService = new DigitalSignatureService();
-            $digitalSignatureService->signLeaveRequest($employeeLeave, Auth::user());
+            $leaveService = new \App\Services\LeaveDigitalSignatureService();
+            $leaveService->signLeaveRequest($employeeLeave, Auth::user());
 
             session()->flash('success', 'Đơn nghỉ phép đã được phê duyệt và ký số thành công!');
             

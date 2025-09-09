@@ -772,10 +772,10 @@ class VehicleRegistration extends Component
             if ($signedPdfPath && file_exists(storage_path('app/' . $signedPdfPath))) {
                 $pdfContent = file_get_contents(storage_path('app/' . $signedPdfPath));
             } else {
-                // Generate new PDF and sign it
-                $digitalSignatureService = new \App\Services\DigitalSignatureService();
-                $pdfContent = $digitalSignatureService->generateVehicleRegistrationPDF($registration, true);
-                $signedPdf = $digitalSignatureService->signPdfBinary($pdfContent);
+                // Generate new PDF using VehicleDigitalSignatureService
+                $vehicleService = new \App\Services\VehicleDigitalSignatureService();
+                $pdfContent = $vehicleService->generateVehicleRegistrationPDF($registration);
+                $signedPdf = $vehicleService->signPdfBinary($pdfContent);
                 $pdfContent = $signedPdf;
             }
 

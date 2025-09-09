@@ -155,11 +155,12 @@
 
                             {{-- Export signed PDF - available after department approval --}}
                             @if(in_array($registration->workflow_status, ['dept_review', 'approved']))
-                              <button wire:click.prevent="downloadVehiclePDF({{ $registration->id }})"
-                                      class="btn btn-sm btn-success"
-                                      title="Tải PDF đăng ký xe">
+                              <a href="{{ route('vehicle.download', ['id' => $registration->id]) }}" 
+                                 class="btn btn-sm btn-success" 
+                                 title="Tải PDF đăng ký xe"
+                                 target="_blank">
                                 <i class="ti ti-download"></i>
-                              </button>
+                              </a>
                             @endif
                           </div>
                         </td>
